@@ -1,33 +1,29 @@
-# ---------- BUILD STAGE ----------
+# ----------------- NODE BUILD STAGE -----------------
 FROM node:20 AS node-builder
 
 WORKDIR /var/www
 
-# Copy package files and configs first
+# Copy package files first (for caching dependencies)
 COPY package*.json ./
-COPY vite.config.js ./
-COPY tsconfig.json ./
-COPY tailwind.config.js ./
+COPY vite.config.js tsconfig.json tailwind.config.js ./
 
-# Install Node dependencies
-RUN npm install
+# Install Node dependencies (ignore peer issues for native modules)
+RUN npm install --legacy-peer-deps
 
-# Copy resources
+# Copy all resource files needed for build
 COPY resources ./resources
 
-# Set environment variables for production build
+# Set environment for production build
 ENV NODE_ENV=production
-# Remove APP_URL from build stage as it causes issues with Vite
 ENV VITE_APP_NAME=FrontendLaravel
 
-# Build assets - Use production flag explicitly
-RUN npm run build -- --mode=production
+# Build Vite assets
+RUN npx vite build --mode=production
 
-
-# ---------- PHP IMAGE ----------
+# ----------------- PHP / LARAVEL STAGE -----------------
 FROM php:8.3-fpm
 
-# Install PHP system dependencies and extensions
+# Install PHP extensions and system dependencies
 RUN apt-get update && apt-get install -y \
     git curl zip unzip libonig-dev libxml2-dev libicu-dev \
     libpng-dev libjpeg-dev libfreetype6-dev libpq-dev \
@@ -56,9 +52,9 @@ RUN chown -R www-data:www-data /var/www \
 # Expose port
 EXPOSE 10000
 
-# Set environment variables at runtime
+# Runtime environment variables
 ENV APP_URL=${APP_URL:-https://frontend-laravel-1.onrender.com}
 ENV PORT=${PORT:-10000}
 
-# Serve Laravel
+# Start Laravel server
 CMD php artisan serve --host 0.0.0.0 --port ${PORT}
