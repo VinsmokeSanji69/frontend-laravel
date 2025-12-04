@@ -1,18 +1,18 @@
 # ---------- BUILD STAGE ----------
-FROM node:20 as node-builder
+FROM node:20 AS node-builder
 
 WORKDIR /var/www
 
-# Copy package files
+# Copy package files and config
 COPY package*.json ./
 COPY vite.config.js ./
 COPY tsconfig.json ./
-COPY tailwind.config.js ./
+COPY tailwind.config.js ./   # Make sure this exists in your project root
 
-# Install node dependencies
+# Install Node dependencies
 RUN npm install
 
-# Copy all resources for build
+# Copy resources for build
 COPY resources ./resources
 
 # Build assets
@@ -21,7 +21,7 @@ RUN npm run build
 # ---------- PHP IMAGE ----------
 FROM php:8.3-fpm
 
-# Install system dependencies & extensions
+# Install system dependencies & PHP extensions
 RUN apt-get update && apt-get install -y \
     git curl zip unzip libonig-dev libxml2-dev libicu-dev \
     libpng-dev libjpeg-dev libfreetype6-dev libpq-dev \
