@@ -21,7 +21,7 @@ export default defineConfig({
         tailwindcss(),
         wayfinder({
             formVariants: true,
-            generateTypes: !isProduction, // <-- skip PHP type generation in production build
+            generateTypes: false, // <-- Disable PHP calls during build
         }),
     ],
     esbuild: { jsx: 'automatic' },

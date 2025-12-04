@@ -7,20 +7,21 @@ WORKDIR /var/www
 COPY package*.json ./
 COPY vite.config.js ./
 COPY tsconfig.json ./
-COPY tailwind.config.js ./
 
 # Install Node dependencies
 RUN npm install
 
-# Copy all resources
+# Copy resources
 COPY resources ./resources
 
-# Set environment variables for Vite build
+# Set environment variable for production build
+ENV NODE_ENV=production
 ENV APP_URL=https://frontend-laravel-1.onrender.com
 ENV VITE_APP_NAME=FrontendLaravel
 
 # Build assets
 RUN npm run build
+
 
 # ---------- PHP IMAGE ----------
 FROM php:8.3-fpm
