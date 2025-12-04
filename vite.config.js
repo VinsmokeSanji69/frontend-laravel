@@ -10,6 +10,11 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             ssr: 'resources/js/ssr.tsx',
             refresh: true,
+            // Use correct production base
+            build: {
+                manifest: true,
+                outDir: 'public/build',
+            },
         }),
         react({
             include: '**/*.{jsx,tsx}',
@@ -22,4 +27,5 @@ export default defineConfig({
     esbuild: {
         jsx: 'automatic',
     },
+    base: process.env.VITE_APP_URL + '/', // important: ensures HTTPS assets
 });
