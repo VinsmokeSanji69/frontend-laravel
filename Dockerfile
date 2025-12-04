@@ -7,7 +7,7 @@ WORKDIR /var/www
 COPY package*.json ./
 COPY vite.config.js ./
 COPY tsconfig.json ./
-COPY tailwind.config.js ./   # Make sure this exists in your project root
+COPY tailwind.config.js ./
 
 # Install Node dependencies
 RUN npm install
