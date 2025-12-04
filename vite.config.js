@@ -10,23 +10,15 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             ssr: 'resources/js/ssr.tsx',
             refresh: true,
-            // Ensure assets are built to public/build
             build: {
                 manifest: true,
                 outDir: 'public/build',
             },
         }),
-        react({
-            include: '**/*.{jsx,tsx}',
-        }),
+        react({ include: '**/*.{jsx,tsx}' }),
         tailwindcss(),
-        wayfinder({
-            formVariants: true,
-        }),
+        wayfinder({ formVariants: true }),
     ],
-    esbuild: {
-        jsx: 'automatic',
-    },
-    // Use the production URL for assets to prevent mixed content issues
+    esbuild: { jsx: 'automatic' },
     base: process.env.APP_URL ? process.env.APP_URL + '/build/' : '/build/',
 });
