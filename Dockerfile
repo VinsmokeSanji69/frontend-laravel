@@ -3,10 +3,11 @@ FROM node:20 AS node-builder
 
 WORKDIR /var/www
 
-# Copy package files and configs
+# Copy package files and configs first
 COPY package*.json ./
 COPY vite.config.js ./
 COPY tsconfig.json ./
+COPY tailwind.config.js ./
 
 # Install Node dependencies
 RUN npm install
@@ -14,13 +15,13 @@ RUN npm install
 # Copy resources
 COPY resources ./resources
 
-# Set environment variable for production build
+# Set environment variables for production build
 ENV NODE_ENV=production
-ENV APP_URL=https://frontend-laravel-1.onrender.com
+# Remove APP_URL from build stage as it causes issues with Vite
 ENV VITE_APP_NAME=FrontendLaravel
 
-# Build assets
-RUN npm run build
+# Build assets - Use production flag explicitly
+RUN npm run build -- --mode=production
 
 
 # ---------- PHP IMAGE ----------
@@ -47,11 +48,17 @@ COPY --from=node-builder /var/www/public/build ./public/build
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Permissions
-RUN chmod -R 777 storage bootstrap/cache public/build
+# Set permissions
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 775 storage bootstrap/cache \
+    && chmod -R 755 public/build
 
 # Expose port
 EXPOSE 10000
+
+# Set environment variables at runtime
+ENV APP_URL=${APP_URL:-https://frontend-laravel-1.onrender.com}
+ENV PORT=${PORT:-10000}
 
 # Serve Laravel
 CMD php artisan serve --host 0.0.0.0 --port ${PORT}

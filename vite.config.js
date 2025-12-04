@@ -1,8 +1,8 @@
-import { wayfinder } from '@laravel/vite-plugin-wayfinder';
-import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
-import laravel from 'laravel-vite-plugin';
 import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import react from '@vitejs/plugin-react';
+import tailwindcss from 'tailwindcss';
+import { wayfinder } from '@laravel/vite-plugin-wayfinder';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -21,9 +21,9 @@ export default defineConfig({
         tailwindcss(),
         wayfinder({
             formVariants: true,
-            generateTypes: false, // <-- Disable PHP calls during build
+            generateTypes: false, // <-- avoid PHP calls during Docker build
         }),
     ],
     esbuild: { jsx: 'automatic' },
-    base: process.env.APP_URL ? process.env.APP_URL + '/build/' : '/build/',
+    base: '/build/',
 });
