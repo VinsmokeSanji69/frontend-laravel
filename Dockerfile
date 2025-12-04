@@ -3,17 +3,21 @@ FROM node:20 AS node-builder
 
 WORKDIR /var/www
 
-# Copy configs and package files
+# Copy package files and configs
 COPY package*.json ./
 COPY vite.config.js ./
 COPY tsconfig.json ./
 COPY tailwind.config.js ./
 
-# Install node modules
+# Install Node dependencies
 RUN npm install
 
-# Copy resources
+# Copy all resources
 COPY resources ./resources
+
+# Set environment variables for Vite build
+ENV APP_URL=https://frontend-laravel-1.onrender.com
+ENV VITE_APP_NAME=FrontendLaravel
 
 # Build assets
 RUN npm run build
@@ -21,7 +25,7 @@ RUN npm run build
 # ---------- PHP IMAGE ----------
 FROM php:8.3-fpm
 
-# Install system deps
+# Install PHP system dependencies and extensions
 RUN apt-get update && apt-get install -y \
     git curl zip unzip libonig-dev libxml2-dev libicu-dev \
     libpng-dev libjpeg-dev libfreetype6-dev libpq-dev \
@@ -33,13 +37,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copy Laravel files
+# Copy Laravel PHP files
 COPY . .
 
-# Copy built assets from Node build
+# Copy built assets from Node stage
 COPY --from=node-builder /var/www/public/build ./public/build
 
-# Install PHP deps
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
 # Permissions

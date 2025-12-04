@@ -7,8 +7,6 @@ export default {
         "./resources/**/*.ts",
         "./resources/**/*.tsx",
     ],
-    theme: {
-        extend: {},
-    },
+    theme: { extend: {} },
     plugins: [],
 };
