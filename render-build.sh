@@ -1,8 +1,20 @@
 #!/usr/bin/env bash
-# exit on error
 set -o errexit
 
 echo "=== Starting build process ==="
+
+echo "Installing Composer..."
+EXPECTED_SIGNATURE=$(curl -s https://composer.github.io/installer.sig)
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+ACTUAL_SIGNATURE=$(php -r "echo hash_file('sha384', 'composer-setup.php');")
+
+if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]; then
+    >&2 echo 'ERROR: Invalid installer signature'
+    exit 1
+fi
+
+php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+php -r "unlink('composer-setup.php');"
 
 echo "Installing Composer dependencies..."
 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
