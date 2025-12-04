@@ -1,0 +1,34 @@
+import * as React from "react"
+import { cn } from "@/lib/utils"
+
+interface IdentificationData {
+    question: string
+    answer: string
+}
+
+interface IdentificationProps extends React.ComponentProps<"div"> {
+    data: IdentificationData
+    index: number
+}
+
+export function Identification({ data, className, index, ...props }: IdentificationProps) {
+
+    return (
+        <div
+            data-slot="true-or-false-layout"
+            className={cn(
+                "flex w-full flex-col border-2 border-card-foreground rounded-lg gap-2 px-4 py-3 hover:bg-muted/40 transition-colors",
+                className
+            )}
+            {...props}
+        >
+            {/* Question */}
+            <p className="font-medium text-lg">{index+1}. {data.question}</p>
+
+            {/* Answer */}
+            <p className="text-md font-medium">
+                Answer: <span className="font-semibold">{data.answer}</span>
+            </p>
+        </div>
+    )
+}
