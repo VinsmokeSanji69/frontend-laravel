@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import { defineConfig } from 'vite';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default defineConfig({
     plugins: [
         laravel({
@@ -17,7 +19,10 @@ export default defineConfig({
         }),
         react({ include: '**/*.{jsx,tsx}' }),
         tailwindcss(),
-        wayfinder({ formVariants: true }),
+        wayfinder({
+            formVariants: true,
+            generateTypes: !isProduction, // <-- skip PHP type generation in production build
+        }),
     ],
     esbuild: { jsx: 'automatic' },
     base: process.env.APP_URL ? process.env.APP_URL + '/build/' : '/build/',
