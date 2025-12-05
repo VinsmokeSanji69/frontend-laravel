@@ -35,8 +35,4 @@ return [
         ],
     ],
 
-    'flask' => [
-        'url' => env('FLASK_AI_URL')
-    ]
-
 ];

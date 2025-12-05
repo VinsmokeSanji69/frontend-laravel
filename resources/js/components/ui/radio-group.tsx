@@ -7,9 +7,10 @@ type Option = {
 };
 
 interface ToggleRadioGroupProps {
-    options: Option[];
-    value?: string;
-    onValueChange?: (value: string) => void;
+    options: Option[],
+    value?: string,
+    onValueChange?: (value: string) => void,
+    disabled?: boolean
 }
 
 interface RadioButtonProps {
@@ -59,7 +60,8 @@ function RadioButton({option, isSelected, onSelect, className}: RadioButtonProps
 export default function ToggleRadioGroup({
                                              options,
                                              value,
-                                             onValueChange
+                                             onValueChange,
+                                             disabled
                                          }: ToggleRadioGroupProps) {
 
     // Default selected = first option

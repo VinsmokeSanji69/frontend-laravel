@@ -7,3 +7,4 @@ return [
     'default_difficulty' => 'medium',
     'default_type' => 'multiple-choice',
 ];
+

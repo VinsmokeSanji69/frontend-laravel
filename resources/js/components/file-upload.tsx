@@ -1,19 +1,21 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import {useState, useEffect} from "react";
+import {Button} from "@/components/ui/button";
 import {Upload, X, FileText, Delete, Trash} from "lucide-react";
 
 interface FileUploadProps {
-    onFileSelect?: (file: File | null) => void;
-    accept?: string;
-    maxSize?: number; // in MB
-    value?: File | null;
+    onFileSelect?: (file: File | null) => void,
+    accept?: string,
+    maxSize?: number,
+    value?: File | null,
+    disabled?: boolean
 }
 
 export default function FileUpload({
                                        onFileSelect,
                                        accept = ".pdf,.doc,.docx,.txt",
                                        maxSize = 10,
-                                       value
+                                       value,
+                                       disabled
                                    }: FileUploadProps) {
     const [file, setFile] = useState<File | null>(value || null);
     const [error, setError] = useState<string>("");
@@ -128,7 +130,7 @@ export default function FileUpload({
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                     <div className="flex flex-col items-center justify-center gap-2 pointer-events-none">
-                        <Upload className={`w-8 h-8 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
+                        <Upload className={`w-8 h-8 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`}/>
                         <Button variant="fit" size="xs" type="button" className="pointer-events-none">
                             Upload File
                         </Button>
@@ -143,7 +145,7 @@ export default function FileUpload({
             ) : (
                 <div className="flex items-center justify-between p-4 border-2 border-card-foreground rounded-lg">
                     <div className="flex items-center gap-3 text-left">
-                        <FileText className="w-8 h-8 text-foreground" />
+                        <FileText className="w-8 h-8 text-foreground"/>
                         <div>
                             <p className="text-sm font-medium text-gray-900">
                                 {file.name}
@@ -158,7 +160,7 @@ export default function FileUpload({
                         onClick={handleRemove}
                         className="p-1 hover:bg-red-100 rounded-full transition-colors"
                     >
-                        <Trash className="w-5 h-5 text-foreground hover:text-red-400" />
+                        <Trash className="w-5 h-5 text-foreground hover:text-red-400"/>
                     </button>
                 </div>
             )}
