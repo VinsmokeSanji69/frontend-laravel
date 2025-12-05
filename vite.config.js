@@ -12,7 +12,7 @@ export default defineConfig({
         react({ include: '**/*.{jsx,tsx}' }),
     ],
     esbuild: { jsx: 'automatic' },
-    base: '/build/',
+    // REMOVED: base: '/build/',
     build: {
         manifest: true,
         outDir: 'public/build',
