@@ -1,36 +1,42 @@
-# ----------------- NODE BUILD STAGE -----------------
+# =========================
+#  NODE BUILD STAGE
+# =========================
 FROM node:20 AS node-builder
 
 WORKDIR /var/www
 
-# Copy package files
+# Copy package files first (for caching)
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy config files
+# Copy Vite + TS configs
 COPY vite.config.js ./
 COPY tsconfig.json ./
 COPY postcss.config.cjs ./
 
-# Copy source directories
+# Copy Laravel frontend resources
 COPY resources ./resources
+
+# Copy public folder (needed for assets)
 COPY public ./public
 
-# Build client assets only (no SSR)
+# Run Vite build
 RUN npm run build
 
-# Verify the build output exists
-RUN echo "=== Checking build artifacts ===" && \
-    ls -la public/build/ && \
-    echo "=== Manifest contents ===" && \
-    cat public/build/manifest.json
+# Ensure build output exists
+RUN echo "=== Checking Vite build ===" \
+    && if [ ! -d "public/build" ]; then echo "ERROR: public/build does NOT exist!"; exit 1; fi \
+    && ls -la public/build \
+    && cat public/build/manifest.json
 
-# ----------------- PHP / LARAVEL STAGE -----------------
+# =========================
+#  LARAVEL PHP STAGE
+# =========================
 FROM php:8.3-fpm
 
-# Install PHP extensions and system dependencies
+# Install system deps + PHP extensions
 RUN apt-get update && apt-get install -y \
     git curl zip unzip libonig-dev libxml2-dev libicu-dev \
     libpng-dev libjpeg-dev libfreetype6-dev libpq-dev \
@@ -42,37 +48,32 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copy ALL Laravel files
+# Copy Laravel app
 COPY . .
 
-# Copy built assets from Node stage
+# Copy Vite build from node stage
 COPY --from=node-builder /var/www/public/build ./public/build
 
-# Verify build directory exists
-RUN echo "=== Final container check ===" && \
-    ls -la public/build/ && \
-    cat public/build/manifest.json
+# Verify assets copied
+RUN echo "=== Final Vite build check ===" \
+    && ls -la public/build \
+    && cat public/build/manifest.json
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Set permissions
+# Permissions
 RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache public/build \
     && chmod -R 755 public
 
-# Expose port
 EXPOSE 10000
 
-ENV APP_URL=${APP_URL:-https://frontend-laravel.onrender.com}
-ENV PORT=${PORT:-10000}
 ENV APP_ENV=production
 ENV APP_DEBUG=false
+ENV PORT=10000
 
-# Start Laravel
-CMD php artisan config:clear && \
-    php artisan cache:clear && \
-    php artisan config:cache && \
+CMD php artisan config:cache && \
     php artisan route:cache && \
     php artisan view:cache && \
     php artisan serve --host 0.0.0.0 --port ${PORT}
