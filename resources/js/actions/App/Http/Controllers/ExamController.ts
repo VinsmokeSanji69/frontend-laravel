@@ -75,7 +75,7 @@ index980bb49ee7ae63891f1d891d2fbcf1c9.head = (options?: RouteQueryOptions): Rout
                     }),
             method: 'get',
         })
-    
+
     index980bb49ee7ae63891f1d891d2fbcf1c9.form = index980bb49ee7ae63891f1d891d2fbcf1c9Form
     /**
 * @see \App\Http\Controllers\ExamController::index
@@ -153,7 +153,7 @@ index6baac021d6feda071f12a75cda21e3e4.head = (options?: RouteQueryOptions): Rout
                     }),
             method: 'get',
         })
-    
+
     index6baac021d6feda071f12a75cda21e3e4.form = index6baac021d6feda071f12a75cda21e3e4Form
 
 export const index = {
@@ -237,7 +237,7 @@ generate99edf3a16904074f1533a5ca97d58055.head = (options?: RouteQueryOptions): R
                     }),
             method: 'get',
         })
-    
+
     generate99edf3a16904074f1533a5ca97d58055.form = generate99edf3a16904074f1533a5ca97d58055Form
     /**
 * @see \App\Http\Controllers\ExamController::generate
@@ -292,11 +292,10 @@ generate99edf3a16904074f1533a5ca97d58055.post = (options?: RouteQueryOptions): R
             action: generate99edf3a16904074f1533a5ca97d58055.url(options),
             method: 'post',
         })
-    
+
     generate99edf3a16904074f1533a5ca97d58055.form = generate99edf3a16904074f1533a5ca97d58055Form
 
 export const generate = {
-    '/exam-generator/generate': generate99edf3a16904074f1533a5ca97d58055,
     '/exam-generator/generate': generate99edf3a16904074f1533a5ca97d58055,
 }
 
@@ -376,7 +375,7 @@ generating.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
                     }),
             method: 'get',
         })
-    
+
     generating.form = generatingForm
 /**
 * @see \App\Http\Controllers\ExamController::exportMethod
@@ -403,7 +402,7 @@ exportMethod.url = (args: { examId: string | number } | [examId: string | number
         args = { examId: args }
     }
 
-    
+
     if (Array.isArray(args)) {
         args = {
                     examId: args[0],
@@ -473,7 +472,7 @@ exportMethod.head = (args: { examId: string | number } | [examId: string | numbe
                     }),
             method: 'get',
         })
-    
+
     exportMethod.form = exportMethodForm
 /**
 * @see \App\Http\Controllers\ExamController::updateTitle
@@ -500,7 +499,7 @@ updateTitle.url = (args: { id: string | number } | [id: string | number ] | stri
         args = { id: args }
     }
 
-    
+
     if (Array.isArray(args)) {
         args = {
                     id: args[0],
@@ -557,7 +556,7 @@ updateTitle.patch = (args: { id: string | number } | [id: string | number ] | st
                     }),
             method: 'post',
         })
-    
+
     updateTitle.form = updateTitleForm
 const ExamController = { index, generate, generating, exportMethod, updateTitle, export: exportMethod }
 
