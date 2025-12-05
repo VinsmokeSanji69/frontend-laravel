@@ -6,13 +6,15 @@ WORKDIR /var/www
 # Copy package files first
 COPY package*.json ./
 
-# Install ALL Node dependencies (including dev dependencies for build)
+# Install ALL Node dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy necessary config files
-COPY vite.config.js tsconfig.json postcss.config.cjs ./
+# Copy config files
+COPY vite.config.js ./
+COPY tsconfig.json ./
+COPY postcss.config.cjs ./
 
-# Copy source files (NO vendor, NO storage - they don't exist yet)
+# Copy ALL Laravel directories that might be referenced
 COPY resources ./resources
 COPY public ./public
 
@@ -34,13 +36,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copy Laravel files
+# Copy ALL Laravel files
 COPY . .
 
 # Copy built assets from Node stage
 COPY --from=node-builder /var/www/public/build ./public/build
 
-# Install PHP dependencies (this creates vendor/)
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set permissions
