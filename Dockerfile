@@ -3,13 +3,13 @@ FROM node:20 AS node-builder
 
 WORKDIR /var/www
 
-# Copy package files first
+# Copy package files
 COPY package*.json ./
 
-# Install ALL Node dependencies
+# Install dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy config files (NO tailwind.config.js needed)
+# Copy config files
 COPY vite.config.js ./
 COPY tsconfig.json ./
 COPY postcss.config.cjs ./
@@ -18,24 +18,17 @@ COPY postcss.config.cjs ./
 COPY resources ./resources
 COPY public ./public
 
-# Build client assets first, then SSR bundle
+# Build client assets only (no SSR)
 RUN npm run build
-RUN npm run build:ssr
 
 # Verify the build output exists
 RUN echo "=== Checking build artifacts ===" && \
     ls -la public/build/ && \
     echo "=== Manifest contents ===" && \
-    cat public/build/manifest.json && \
-    echo "=== SSR bundle ===" && \
-    ls -la bootstrap/ssr/ || echo "SSR bundle not found"
+    cat public/build/manifest.json
 
 # ----------------- PHP / LARAVEL STAGE -----------------
 FROM php:8.3-fpm
-
-# Install Node.js in the PHP container (needed for SSR)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs
 
 # Install PHP extensions and system dependencies
 RUN apt-get update && apt-get install -y \
@@ -49,25 +42,23 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copy ALL Laravel files FIRST
+# Copy ALL Laravel files
 COPY . .
 
-# Copy built assets from Node stage (AFTER copying Laravel files)
+# Copy built assets from Node stage
 COPY --from=node-builder /var/www/public/build ./public/build
-COPY --from=node-builder /var/www/bootstrap/ssr ./bootstrap/ssr
 
-# Verify build directories exist in final container
+# Verify build directory exists
 RUN echo "=== Final container check ===" && \
     ls -la public/build/ && \
-    cat public/build/manifest.json && \
-    ls -la bootstrap/ssr/ || echo "No SSR bundle"
+    cat public/build/manifest.json
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www \
-    && chmod -R 775 storage bootstrap/cache public/build bootstrap/ssr \
+    && chmod -R 775 storage bootstrap/cache public/build \
     && chmod -R 755 public
 
 # Expose port
@@ -78,7 +69,7 @@ ENV PORT=${PORT:-10000}
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 
-# Start Laravel with proper config
+# Start Laravel
 CMD php artisan config:clear && \
     php artisan cache:clear && \
     php artisan config:cache && \
