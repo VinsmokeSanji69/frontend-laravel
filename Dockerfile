@@ -1,27 +1,3 @@
-# ----------------- NODE BUILD STAGE -----------------
-FROM node:20 AS node-builder
-
-WORKDIR /var/www
-
-# Copy package files first (for caching dependencies)
-COPY package*.json ./
-COPY vite.config.js tsconfig.json tailwind.config.js postcss.config.cjs ./
-
-# Install Node dependencies
-RUN npm install --legacy-peer-deps
-
-# Copy all resource files needed for build
-COPY resources ./resources
-COPY public ./public
-
-# Set environment for production build
-ENV NODE_ENV=production
-ENV VITE_APP_NAME=FrontendLaravel
-ENV VITE_APP_URL=https://frontend-laravel-1.onrender.com
-
-# Build Vite assets
-RUN npm run build
-
 # ----------------- PHP / LARAVEL STAGE -----------------
 FROM php:8.3-fpm
 
@@ -35,16 +11,19 @@ RUN apt-get update && apt-get install -y \
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# Install Node.js (needed for npm run dev)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /var/www
 
-# Copy Laravel PHP files
+# Copy all files
 COPY . .
 
-# Copy built assets from Node stage
-COPY --from=node-builder /var/www/public/build ./public/build
-
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Install dependencies
+RUN composer install --optimize-autoloader --no-interaction \
+    && npm install --legacy-peer-deps
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www \
@@ -58,5 +37,5 @@ EXPOSE 10000
 ENV APP_URL=${APP_URL:-https://frontend-laravel-1.onrender.com}
 ENV PORT=${PORT:-10000}
 
-# Start Laravel server
-CMD php artisan serve --host 0.0.0.0 --port ${PORT}
+# Start both Vite dev server and Laravel
+CMD npm run dev & php artisan serve --host 0.0.0.0 --port ${PORT}
