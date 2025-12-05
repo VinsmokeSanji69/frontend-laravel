@@ -9,8 +9,8 @@ COPY package*.json ./
 # Install ALL Node dependencies (including dev dependencies for build)
 RUN npm install --legacy-peer-deps
 
-# Copy necessary config files
-COPY vite.config.js tsconfig.json tailwind.config.js postcss.config.cjs ./
+# Copy necessary config files (NO tailwind.config.js for v4)
+COPY vite.config.js tsconfig.json postcss.config.cjs ./
 
 # Copy source files
 COPY resources ./resources
