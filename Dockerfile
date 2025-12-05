@@ -5,9 +5,9 @@ WORKDIR /var/www
 
 # Copy package files first (for caching dependencies)
 COPY package*.json ./
-COPY vite.config.js tsconfig.json tailwind.config.js ./
+COPY vite.config.js tsconfig.json tailwind.config.js postcss.config.js* ./
 
-# Install Node dependencies (ignore peer issues for native modules)
+# Install Node dependencies
 RUN npm install --legacy-peer-deps
 
 # Copy all resource files needed for build
@@ -16,9 +16,10 @@ COPY resources ./resources
 # Set environment for production build
 ENV NODE_ENV=production
 ENV VITE_APP_NAME=FrontendLaravel
+ENV VITE_APP_URL=https://frontend-laravel-1.onrender.com
 
-# Build Vite assets
-RUN npx vite build --mode=production
+# Build Vite assets (standard npm run build command)
+RUN npm run build
 
 # ----------------- PHP / LARAVEL STAGE -----------------
 FROM php:8.3-fpm
