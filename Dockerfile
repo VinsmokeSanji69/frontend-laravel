@@ -12,14 +12,9 @@ RUN npm install --legacy-peer-deps
 # Copy necessary config files
 COPY vite.config.js tsconfig.json postcss.config.cjs ./
 
-# Copy ALL source files BEFORE building
+# Copy source files (NO vendor, NO storage - they don't exist yet)
 COPY resources ./resources
 COPY public ./public
-COPY storage ./storage
-COPY vendor ./vendor
-
-# Create storage directories if they don't exist
-RUN mkdir -p storage/framework/views
 
 # Build Vite assets
 RUN npm run build
@@ -45,7 +40,7 @@ COPY . .
 # Copy built assets from Node stage
 COPY --from=node-builder /var/www/public/build ./public/build
 
-# Install PHP dependencies
+# Install PHP dependencies (this creates vendor/)
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set permissions
