@@ -69,10 +69,9 @@ RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache public/build \
     && chmod -R 755 public
 
-EXPOSE 10000
+# Expose dynamic port for Render
+EXPOSE ${PORT}
 
-ENV APP_ENV=production
-ENV APP_DEBUG=false
-ENV PORT=10000
-
+# CMD for php-fpm with port env
 CMD ["php-fpm"]
+
