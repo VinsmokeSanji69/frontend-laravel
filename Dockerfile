@@ -29,7 +29,8 @@ RUN npm run build
 RUN echo "=== Checking Vite build ===" \
     && if [ ! -d "public/build" ]; then echo "ERROR: public/build does NOT exist!"; exit 1; fi \
     && ls -la public/build \
-    && cat public/build/manifest.json
+    && ls -la public/build/.vite \
+    && cat public/build/.vite/manifest.json
 
 # =========================
 #  LARAVEL PHP STAGE
