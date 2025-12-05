@@ -5,20 +5,21 @@ WORKDIR /var/www
 
 # Copy package files first (for caching dependencies)
 COPY package*.json ./
-COPY vite.config.js tsconfig.json tailwind.config.js postcss.config.js* ./
+COPY vite.config.js tsconfig.json tailwind.config.js postcss.config.cjs ./
 
 # Install Node dependencies
 RUN npm install --legacy-peer-deps
 
 # Copy all resource files needed for build
 COPY resources ./resources
+COPY public ./public
 
 # Set environment for production build
 ENV NODE_ENV=production
 ENV VITE_APP_NAME=FrontendLaravel
 ENV VITE_APP_URL=https://frontend-laravel-1.onrender.com
 
-# Build Vite assets (standard npm run build command)
+# Build Vite assets
 RUN npm run build
 
 # ----------------- PHP / LARAVEL STAGE -----------------
@@ -27,7 +28,7 @@ FROM php:8.3-fpm
 # Install PHP extensions and system dependencies
 RUN apt-get update && apt-get install -y \
     git curl zip unzip libonig-dev libxml2-dev libicu-dev \
-    libpng-dev libjpeg-dev libfreetype6-dev libpq-dev \
+    libpng-dev libjpeg-dev libfreetype6-dev libpq-dev nginx \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql pgsql intl mbstring gd bcmath xml \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -43,12 +44,12 @@ COPY . .
 COPY --from=node-builder /var/www/public/build ./public/build
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache \
-    && chmod -R 755 public/build
+    && chmod -R 755 public
 
 # Expose port
 EXPOSE 10000

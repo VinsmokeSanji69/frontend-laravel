@@ -2,8 +2,6 @@ import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import react from '@vitejs/plugin-react';
 
-const isProduction = process.env.NODE_ENV === 'production';
-
 export default defineConfig({
     plugins: [
         laravel({
@@ -12,20 +10,7 @@ export default defineConfig({
             refresh: true,
         }),
         react({ include: '**/*.{jsx,tsx}' }),
-        // Only use wayfinder in development
-        // ...(isProduction ? [] : [wayfinder({
-        //     formVariants: true,
-        //     generateTypes: false,
-        // })]),
     ],
-    css: {
-        postcss: {
-            plugins: [
-                require('tailwindcss'),
-                require('autoprefixer'),
-            ],
-        },
-    },
     esbuild: { jsx: 'automatic' },
     base: '/build/',
     build: {
