@@ -5,44 +5,45 @@ FROM node:20 AS node-builder
 
 WORKDIR /var/www
 
-# Copy package files
+# Copy package files first (for caching)
 COPY package*.json ./
 
-# Install dependencies
+# Install Node dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy configs and resources
+# Copy Vite + TS + PostCSS configs
 COPY vite.config.js tsconfig.json postcss.config.cjs ./
+
+# Copy frontend resources and public folder
 COPY resources ./resources
 COPY public ./public
 
-# Build Vite assets
+# Run Vite build
 RUN npm run build
 
 # =========================
-# PHP + LARAVEL + NGINX STAGE
+# PHP + LARAVEL STAGE
 # =========================
-FROM php:8.3-fpm
+FROM php:8.3-cli
 
-# Set working directory
 WORKDIR /var/www
 
-# Install system dependencies + PHP extensions + Nginx + Supervisor
-RUN apt-get update && apt-get install -y \
-    git curl zip unzip libonig-dev libxml2-dev libicu-dev \
+# Install system dependencies + PHP extensions
+RUN apt-get update && apt-get install -y git curl zip unzip libonig-dev libxml2-dev libicu-dev \
     libpng-dev libjpeg-dev libfreetype6-dev libpq-dev \
-    nginx supervisor \
     && docker-php-ext-install pdo pdo_pgsql intl mbstring gd bcmath xml \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Copy Laravel app
 COPY . .
 
-# Copy Vite build from Node stage
+# Copy Vite build from Node build stage
 COPY --from=node-builder /var/www/public/build ./public/build
 
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set permissions
@@ -50,15 +51,8 @@ RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache public/build \
     && chmod -R 755 public
 
-# Copy Nginx config
-COPY docker/nginx.conf /etc/nginx/sites-enabled/default
-
-# Copy entrypoint
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Expose port
+# Expose dynamic port for Render
 EXPOSE ${PORT}
 
-# Start everything
-ENTRYPOINT ["docker-entrypoint.sh"]
+# Serve Laravel on Render
+CMD php artisan serve --host=0.0.0.0 --port=${PORT}
