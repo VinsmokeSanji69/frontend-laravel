@@ -5,30 +5,28 @@ FROM node:20 AS node-builder
 
 WORKDIR /var/www
 
-# Copy package files first (for caching)
+# Copy package files first
 COPY package*.json ./
-
-# Install Node dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy Vite + TS + PostCSS configs
+# Copy configs
 COPY vite.config.js tsconfig.json postcss.config.cjs ./
 
-# Copy frontend resources and public folder
+# Copy frontend resources
 COPY resources ./resources
 COPY public ./public
 
-# Run Vite build
+# Build Vite assets
 RUN npm run build
 
 # =========================
 # PHP + LARAVEL STAGE
 # =========================
-FROM php:8.3-cli
+FROM php:8.3-fpm
 
 WORKDIR /var/www
 
-# Install system dependencies + PHP extensions
+# Install system deps + PHP extensions
 RUN apt-get update && apt-get install -y git curl zip unzip libonig-dev libxml2-dev libicu-dev \
     libpng-dev libjpeg-dev libfreetype6-dev libpq-dev \
     && docker-php-ext-install pdo pdo_pgsql intl mbstring gd bcmath xml \
@@ -40,10 +38,10 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Copy Laravel app
 COPY . .
 
-# Copy Vite build from Node build stage
+# Copy Vite build
 COPY --from=node-builder /var/www/public/build ./public/build
 
-# Install PHP dependencies
+# Install PHP deps
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set permissions
@@ -51,8 +49,12 @@ RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache public/build \
     && chmod -R 755 public
 
-# Expose dynamic port for Render
+# Clear caches at runtime via entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Expose port from Render
 EXPOSE ${PORT}
 
-# Serve Laravel on Render
-CMD php artisan serve --host=0.0.0.0 --port=${PORT}
+# Start container via entrypoint
+ENTRYPOINT ["docker-entrypoint.sh"]
