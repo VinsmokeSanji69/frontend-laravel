@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sheet';
 
 import { cn } from '@/lib/utils';
-import { home } from '@/routes';
+const home = () => '/';
 import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { Menu } from 'lucide-react';
