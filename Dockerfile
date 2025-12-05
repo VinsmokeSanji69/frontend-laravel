@@ -55,10 +55,11 @@ COPY . .
 # Copy Vite build from node stage
 COPY --from=node-builder /var/www/public/build ./public/build
 
-# Verify assets copied
+# Verify assets copied (FIXED PATH)
 RUN echo "=== Final Vite build check ===" \
     && ls -la public/build \
-    && cat public/build/manifest.json
+    && ls -la public/build/.vite \
+    && cat public/build/.vite/manifest.json
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
