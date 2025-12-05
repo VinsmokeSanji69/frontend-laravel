@@ -51,12 +51,6 @@ RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache public/build \
     && chmod -R 755 public
 
-# Clear caches (in Dockerfile, after copying app)
-RUN php artisan config:clear \
-    && php artisan route:clear \
-    && php artisan view:clear \
-    && php artisan cache:clear
-
 # Expose dynamic port for Render
 EXPOSE ${PORT}
 
