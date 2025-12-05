@@ -5,14 +5,14 @@ FROM node:20 AS node-builder
 
 WORKDIR /var/www
 
-# Copy package files first
+# Copy package files
 COPY package*.json ./
+
+# Install dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy configs
+# Copy configs and resources
 COPY vite.config.js tsconfig.json postcss.config.cjs ./
-
-# Copy frontend resources
 COPY resources ./resources
 COPY public ./public
 
@@ -20,28 +20,29 @@ COPY public ./public
 RUN npm run build
 
 # =========================
-# PHP + LARAVEL STAGE
+# PHP + LARAVEL + NGINX STAGE
 # =========================
 FROM php:8.3-fpm
 
+# Set working directory
 WORKDIR /var/www
 
-# Install system deps + PHP extensions
-RUN apt-get update && apt-get install -y git curl zip unzip libonig-dev libxml2-dev libicu-dev \
+# Install system dependencies + PHP extensions + Nginx + Supervisor
+RUN apt-get update && apt-get install -y \
+    git curl zip unzip libonig-dev libxml2-dev libicu-dev \
     libpng-dev libjpeg-dev libfreetype6-dev libpq-dev \
+    nginx supervisor \
     && docker-php-ext-install pdo pdo_pgsql intl mbstring gd bcmath xml \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Copy Laravel app
 COPY . .
 
-# Copy Vite build
+# Copy Vite build from Node stage
 COPY --from=node-builder /var/www/public/build ./public/build
 
-# Install PHP deps
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set permissions
@@ -49,12 +50,15 @@ RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache public/build \
     && chmod -R 755 public
 
-# Clear caches at runtime via entrypoint
+# Copy Nginx config
+COPY docker/nginx.conf /etc/nginx/sites-enabled/default
+
+# Copy entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Expose port from Render
+# Expose port
 EXPOSE ${PORT}
 
-# Start container via entrypoint
+# Start everything
 ENTRYPOINT ["docker-entrypoint.sh"]

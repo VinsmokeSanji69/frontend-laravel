@@ -15,5 +15,5 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Start PHP-FPM server (production-ready)
-php-fpm
+# Start supervisor to manage PHP-FPM + Nginx
+exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
