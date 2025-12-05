@@ -9,11 +9,12 @@ COPY package*.json ./
 # Install ALL Node dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy necessary files for Vite build
+# Copy config files (NO tailwind.config.js needed)
 COPY vite.config.js ./
 COPY tsconfig.json ./
 COPY postcss.config.cjs ./
-COPY tailwind.config.js ./
+
+# Copy source directories
 COPY resources ./resources
 COPY public ./public
 
