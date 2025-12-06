@@ -65,3 +65,19 @@ Route::prefix('questions')->group(function () {
     Route::delete('/{id}', [QuestionController::class, 'destroy'])
         ->name('question.destroy');
 });
+
+// In routes/web.php
+Route::get('/debug-vite', function () {
+    $buildPath = public_path('build');
+    $manifestPath = public_path('build/manifest.json');
+
+    return response()->json([
+        'public_path' => public_path(),
+        'build_path' => $buildPath,
+        'build_exists' => is_dir($buildPath),
+        'manifest_path' => $manifestPath,
+        'manifest_exists' => file_exists($manifestPath),
+        'build_contents' => is_dir($buildPath) ? scandir($buildPath) : 'Directory does not exist',
+        'manifest_content' => file_exists($manifestPath) ? file_get_contents($manifestPath) : 'File does not exist',
+    ]);
+});
