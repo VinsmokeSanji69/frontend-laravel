@@ -80,7 +80,8 @@ export default function ExamView({ exam, questions }: Props) {
     const [isSaving, setIsSaving] = useState(false);
 
     const handleBack = () => {
-        router.visit('/exam-generator');
+        // Go back to library instead of exam-generator
+        router.visit('/exam-library');
     };
 
     const handlePublish = () => {
@@ -143,7 +144,8 @@ export default function ExamView({ exam, questions }: Props) {
             <div className="flex flex-1 min-h-[620px] mt-20 flex-col items-center justify-start gap-3 rounded-xl px-10 pb-10">
                 <div className="flex flex-row w-full justify-between">
                     <Button variant="fit" size="xs" onClick={handleBack}>
-                        <ArrowLeft />
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Library
                     </Button>
                     <Button variant="fit" size="xs" onClick={handlePublish}>
                         Publish

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\QuestionController;
@@ -11,30 +12,40 @@ use App\Http\Controllers\PublishController;
 Route::get('/', [ExamController::class, 'index'])
     ->name('home');
 
+// Authentication Routes
+Route::middleware('guest')->group(function () {
+    // Login routes
+    Route::get('/login', [UserController::class, 'login'])->name('login');
+    Route::post('/login', [UserController::class, 'loginStore'])->name('login.store');
 
-// Exam Generator Routes
-Route::prefix('exam-generator')->group(function () {
-    Route::get('/login', [UserController::class, 'login'])
-        ->name('user.login');
+    // Signup routes
+    Route::get('/signup', [UserController::class, 'signup'])->name('signup');
+    Route::post('/signup', [UserController::class, 'signupStore'])->name('signup.store');
+});
 
-    Route::get('/signup', [UserController::class, 'signup'])
-        ->name('user.signup');
+// Logout route
+Route::post('/logout', [UserController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
 
+// Exam Generator Routes - PROTECTED WITH AUTH
+Route::prefix('exam-generator')->middleware('auth')->group(function () {
     // Dashboard - List all exams
     Route::get('/', [ExamController::class, 'index'])
         ->name('exam.index');
 
-    // Show generate form (GET) & Handle generation (POST)
+    // Show generate form (GET)
     Route::get('/generate', [ExamController::class, 'generate'])
         ->name('exam.generate-form');
 
+    // Handle generation (POST) - THIS IS THE KEY ROUTE
     Route::post('/generate', [ExamController::class, 'generate'])
-        ->name('exam.generate-exam');
+        ->name('exam.generate');
 
     Route::get('/generating', [ExamController::class, 'generating'])
         ->name('exam.generating-screen');
 
-    // View generated exam - NOW USES QuestionController
+    // View generated exam
     Route::get('/view/{id}', [QuestionController::class, 'index'])
         ->name('exam.view');
 
@@ -51,12 +62,16 @@ Route::prefix('exam-generator')->group(function () {
         ->name('exam.answer-key');
 });
 
-// Update exam title - MOVED OUTSIDE exam-generator prefix
+// routes/web.php
+Route::get('/exam-library', [ExamController::class, 'library'])->name('exam.library');
+
+// Update exam title - PROTECTED
 Route::patch('/exam/{id}/update-title', [ExamController::class, 'updateTitle'])
+    ->middleware('auth')
     ->name('exam.updateTitle');
 
-// Question Management Routes
-Route::prefix('questions')->group(function () {
+// Question Management Routes - PROTECTED
+Route::prefix('questions')->middleware('auth')->group(function () {
     // Update a question
     Route::put('/{id}', [QuestionController::class, 'update'])
         ->name('question.update');
@@ -66,7 +81,11 @@ Route::prefix('questions')->group(function () {
         ->name('question.destroy');
 });
 
-// In routes/web.php
+Route::post('/_boost/browser-logs', function (Request $request) {
+    return response()->json(['ok' => true], 200);
+});
+
+// Debug route
 Route::get('/debug-vite', function () {
     $buildPath = public_path('build');
     $manifestPath = public_path('build/manifest.json');

@@ -15,7 +15,8 @@ class Exam extends Model
         'description',
         'share_code',
         'settings',
-        'total_questions'
+        'total_questions',
+        'user_id'  // ADD THIS LINE
     ];
 
     protected $casts = [
@@ -31,6 +32,12 @@ class Exam extends Model
                 $exam->share_code = Str::random(8);
             }
         });
+    }
+
+    // ADD THIS RELATIONSHIP
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function questions()

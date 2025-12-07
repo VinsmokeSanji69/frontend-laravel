@@ -11,7 +11,7 @@ import { X } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import FileUpload from "@/components/file-upload";
 import ToggleRadioGroup from "@/components/ui/radio-group";
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 type Option = {
@@ -52,7 +52,7 @@ export default function GenerateExamForm() {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('difficulty', difficulty);
-        formData.append('num_questions', '10'); // You can make this configurable
+        formData.append('num_questions', '10');
 
         // Send question types as array
         questionTypes.forEach((type, index) => {
@@ -64,16 +64,33 @@ export default function GenerateExamForm() {
                 forceFormData: true,
                 onSuccess: () => {
                     console.log('Exam generated successfully!');
+                    // Don't set isSubmitting to false here - page will redirect
                 },
                 onError: (errors: any) => {
                     console.error('Generation failed:', errors);
-                    setError(errors.message || 'Failed to generate exam');
+
+                    // Handle different error formats
+                    if (errors.general) {
+                        setError(errors.general);
+                    } else if (errors.message) {
+                        setError(errors.message);
+                    } else if (errors.file) {
+                        setError(Array.isArray(errors.file) ? errors.file[0] : errors.file);
+                    } else if (typeof errors === 'string') {
+                        setError(errors);
+                    } else {
+                        setError('Failed to generate exam. Please try again.');
+                    }
+
+                    setIsSubmitting(false);
                 },
                 onFinish: () => {
-                    setIsSubmitting(false);
+                    // Only executed after both success and error callbacks
+                    // Don't set isSubmitting here to prevent flickering
                 }
             });
         } catch (err) {
+            console.error('Submit error:', err);
             setError('An error occurred while generating the exam');
             setIsSubmitting(false);
         }
@@ -84,7 +101,7 @@ export default function GenerateExamForm() {
     };
 
     return (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card w-full max-w-md h-fit border-2 border-card-foreground rounded-3xl shadow-lg z-10">
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card w-full max-w-md h-fit border-2 border-card-foreground rounded-3xl z-10">
             <form onSubmit={handleSubmit}>
                 <FieldGroup>
                     <FieldSet>
@@ -95,11 +112,19 @@ export default function GenerateExamForm() {
                                 size="sm"
                                 type="button"
                                 onClick={handleClose}
+                                className="hover:border-card-foreground bg-card border-2 border-transparent"
+                                disabled={isSubmitting}
                             >
                                 <X />
                             </Button>
                         </FieldHeader>
                         <FieldContent>
+                            {error && (
+                                <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-800 rounded-lg text-sm">
+                                    {error}
+                                </div>
+                            )}
+
                             <Field>
                                 <FieldLabel htmlFor="difficulty">
                                     Difficulty
@@ -108,6 +133,7 @@ export default function GenerateExamForm() {
                                     options={difficultyOptions}
                                     value={difficulty}
                                     onValueChange={setDifficulty}
+                                    disabled={isSubmitting}
                                 />
                             </Field>
 
@@ -120,11 +146,11 @@ export default function GenerateExamForm() {
                                     variant="outline"
                                     value={questionTypes}
                                     onValueChange={(value) => {
-                                        // Ensure at least one type is selected
                                         if (value.length > 0) {
                                             setQuestionTypes(value);
                                         }
                                     }}
+                                    disabled={isSubmitting}
                                 >
                                     <ToggleGroupItem value="multipleChoice" color="blue">
                                         Multiple Choice
@@ -143,14 +169,18 @@ export default function GenerateExamForm() {
 
                             <Field>
                                 <FieldLabel htmlFor="file-upload">
-                                    Upload Material
+                                    Upload Material (PDF only)
                                 </FieldLabel>
                                 <FileUpload
                                     onFileSelect={setFile}
-                                    accept=".pdf,.doc,.docx,.txt"
+                                    accept=".pdf"
                                     maxSize={10}
                                     value={file}
+                                    disabled={isSubmitting}
                                 />
+                                <FieldDescription className="mt-2 text-xs text-secondary-foreground text-left">
+                                    Maximum file size: 10MB
+                                </FieldDescription>
                             </Field>
                         </FieldContent>
                     </FieldSet>
@@ -159,9 +189,10 @@ export default function GenerateExamForm() {
                             variant="fit"
                             size="xs"
                             type="submit"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !file}
+                            className="transition-all hover:-translate-y-0.5 shadow-[4px_4px_0_#000000] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isSubmitting ? 'Generating...' : 'Generate'}
+                            {isSubmitting ? 'Generating Exam...' : 'Generate'}
                         </Button>
                     </FieldFooter>
                 </FieldGroup>

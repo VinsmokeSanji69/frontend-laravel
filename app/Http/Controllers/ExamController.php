@@ -7,6 +7,7 @@ use App\Models\Question;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class ExamController extends Controller
@@ -18,13 +19,10 @@ class ExamController extends Controller
         $this->flaskUrl = env('FLASK_AI_URL', 'http://localhost:5000');
     }
 
-    public function index(): \Inertia\Response
+    public function index()
     {
-        $exams = Exam::orderBy('created_at', 'desc')->get();
-
-        return Inertia::render('landing-page', [
-            'exams' => $exams
-        ]);
+        // Auth data is automatically shared via HandleInertiaRequests middleware
+        return Inertia::render('landing-page');
     }
 
     public function generate(Request $request)
@@ -89,7 +87,6 @@ class ExamController extends Controller
                 ]);
             }
 
-
             $pdfData = $pdfResponse->json();
             $content = $pdfData['content'];
 
@@ -106,7 +103,6 @@ class ExamController extends Controller
                 ->post("{$this->flaskUrl}/api/ai/analyze-topic", [
                     'content' => $content
                 ]);
-
 
             if (!$topicResponse->successful()) {
                 Log::error('Topic analysis failed', ['response' => $topicResponse->json()]);
@@ -128,10 +124,9 @@ class ExamController extends Controller
                 Log::info("Generating {$questionsPerType} {$type} questions from full content");
 
                 try {
-                    // Send FULL content to AI for better question generation
                     $questionsResponse = Http::timeout(120)
                         ->post("{$this->flaskUrl}/api/ai/generate-questions", [
-                            'content' => $content, // Send full PDF content
+                            'content' => $content,
                             'num_questions' => $questionsPerType,
                             'difficulty' => $difficultyMap[$request->difficulty],
                             'type' => $type
@@ -141,7 +136,6 @@ class ExamController extends Controller
                         $data = $questionsResponse->json();
 
                         if (isset($data['questions']) && count($data['questions']) > 0) {
-                            // Add the type to each question
                             foreach ($data['questions'] as &$question) {
                                 $question['type'] = $type;
                             }
@@ -174,6 +168,7 @@ class ExamController extends Controller
                 'title' => $extractedTopic . ' - Exam (' . now()->format('Y-m-d') . ')',
                 'description' => "Generated from {$request->file('file')->getClientOriginalName()}",
                 'total_questions' => count($allQuestions),
+                'user_id' => Auth::id(), // Associate with logged-in user
                 'settings' => [
                     'difficulty' => $request->difficulty,
                     'question_types' => $request->question_types,
@@ -184,7 +179,7 @@ class ExamController extends Controller
                 ]
             ]);
 
-            // Save questions with proper mapping
+            // Save questions
             foreach ($allQuestions as $index => $q) {
                 Question::create([
                     'exam_id' => $exam->id,
@@ -217,8 +212,9 @@ class ExamController extends Controller
         }
     }
 
-    public function generating(){
-        return Inertia::render('loader-screen',[]);
+    public function generating()
+    {
+        return Inertia::render('loader-screen', []);
     }
 
     public function view($id)
@@ -244,25 +240,23 @@ class ExamController extends Controller
             ];
 
             if ($question->question_type === 'multiple-choice') {
-                // For multiple choice, we need to include choices
                 $questionData['choices'] = $options ?? [];
                 $transformedQuestions['multiple'][] = $questionData;
             } elseif ($question->question_type === 'true-false') {
                 $transformedQuestions['trueOrFalse'][] = $questionData;
-            } else {  // identification
+            } else {
                 $transformedQuestions['identification'][] = $questionData;
             }
         }
 
-        // Get extracted topic for display
         $extractedTopic = $exam->settings['extracted_topic'] ?? 'Unknown Topic';
 
         return Inertia::render('exam-view', [
             'exam' => [
                 'id' => $exam->id,
                 'title' => $exam->title,
-                'topic' => $extractedTopic, // Pass the extracted topic
-                'question_types' => $exam->settings['question_types'] ?? [], // Keep this for reference if needed
+                'topic' => $extractedTopic,
+                'question_types' => $exam->settings['question_types'] ?? [],
                 'difficulty' => ucfirst($exam->settings['difficulty'] ?? 'N/A'),
                 'extracted_topic' => $extractedTopic,
                 'subject' => $exam->settings['subject'] ?? null
@@ -288,10 +282,31 @@ class ExamController extends Controller
     {
         $exam = Exam::with('questions')->findOrFail($examId);
 
-        // TODO: Implement export functionality
         return response()->json([
             'message' => 'Export functionality coming soon',
             'exam' => $exam
+        ]);
+    }
+
+    public function library()
+    {
+        $exams = Exam::where('user_id', auth()->id())
+            ->with('questions')
+            ->latest()
+            ->get()
+            ->map(function ($exam) {
+                return [
+                    'id' => $exam->id,
+                    'title' => $exam->title,
+                    'topic' => $exam->settings['subject'] ?? 'Unknown',
+                    'extracted_topic' => $exam->settings['extracted_topic'] ?? 'Unknown',
+                    'question_count' => $exam->questions->count(),
+                    'created_at' => $exam->created_at->toISOString(),
+                ];
+            });
+
+        return inertia('exam-library', [  // Changed from 'ExamLibrary' to 'exam-library'
+            'exams' => $exams
         ]);
     }
 

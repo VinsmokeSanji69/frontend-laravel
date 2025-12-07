@@ -7,20 +7,17 @@ use Illuminate\Foundation\Configuration\Middleware;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
-            \App\Http\Middleware\SetAITimeouts::class, // ADD THIS LINE
         ]);
 
-        // Optional: Add to API middleware group as well
-        $middleware->api(append: [
-            \App\Http\Middleware\SetAITimeouts::class, // ADD THIS LINE
+        $middleware->validateCsrfTokens(except: [
+            '/_boost/browser-logs',
+            'exam-generator/generate', // Temporary - for testing
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
