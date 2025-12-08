@@ -32,7 +32,7 @@ RUN echo "=== Checking build output ===" && \
 # =========================
 # 2. PHP / LARAVEL STAGE
 # =========================
-FROM php:8.3-cli
+FROM php:8.5-cli
 
 WORKDIR /var/www
 
