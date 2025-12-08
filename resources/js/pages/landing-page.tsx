@@ -89,14 +89,7 @@ export default function LandingPage() {
     };
 
     return (
-        <AppLayout>
-            {/* User Dropdown in upper right */}
-            {isUser && auth.user && (
-                <div className="fixed top-6 right-6 z-50">
-                    <UserDropdown user={auth.user} />
-                </div>
-            )}
-
+        <AppLayout auth={auth}>
             {localErrors.length > 0 && (
                 <AlertError
                     title="Error Extracting Text"
@@ -106,8 +99,8 @@ export default function LandingPage() {
                 />
             )}
             <div className="flex flex-col h-full w-screen py-6">
-                <section id="generate-exam" className="flex h-[600px] flex-col items-center justify-center gap-4 text-center px-4 mt-20">
-                    <svg width="80" height="80" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <section id="generate-exam" className="flex h-[600px] flex-col items-center justify-center gap-4 text-center px-4 py-10 mt-20">
+                    <svg width="80" height="80" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" className="mt-20">
                         <rect x="1" y="1" width="54" height="54" rx="27" stroke="black" strokeWidth="2"/>
                         <path d="M18.8334 31.6665C15.7958 31.6665 13.3334 34.1289 13.3334 37.1665C13.3334 40.2041 15.7958 42.6665 18.8334 42.6665C19.4762 42.6665 20.0933 42.5562 20.6667 42.3535" stroke="#131927" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         <path d="M13.8167 34.6087C11.3607 33.4236 9.66627 30.9098 9.66627 28.0002C9.66627 25.7789 10.654 23.7882 12.2141 22.4434" stroke="#131927" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -122,11 +115,7 @@ export default function LandingPage() {
                         <path d="M40.2222 35.3335L37.1667 40.8335H44.5L41.4445 46.3335" stroke="#131927" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
 
-                    {isUser && auth.user && (
-                        <p className="text-sm text-gray-600">Welcome back, {auth.user.name}!</p>
-                    )}
-
-                    <h1 className="text-6xl font-semibold text-gray-900 whitespace-normal break-words w-full max-w-[700px] sm:max-w-full mt-6">
+                    <h1 className="text-5xl font-semibold text-gray-900 whitespace-normal break-words w-full max-w-[700px] sm:max-w-full mt-6">
                         AI-Powered Exam Generator
                     </h1>
 
@@ -137,7 +126,7 @@ export default function LandingPage() {
                         className="my-6 shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5 text-xl py-5 hover:bg-accent-blue"
                         onClick={handleGenerateClick}
                     >
-                        Generate exam
+                        Generate Exam
                     </Button>
 
                     {showForm && <GenerateExamForm />}

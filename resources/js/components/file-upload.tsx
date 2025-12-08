@@ -130,8 +130,8 @@ export default function FileUpload({
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                     <div className="flex flex-col items-center justify-center gap-2 pointer-events-none">
-                        <Upload className={`w-8 h-8 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`}/>
-                        <Button variant="fit" size="xs" type="button" className="pointer-events-none">
+                        <Upload className="w-8 h-8 text-foreground"/>
+                        <Button variant="fit" size="xs" type="button" className="pointer-events-none shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5">
                             Upload File
                         </Button>
                         <p className="text-xs text-gray-500">

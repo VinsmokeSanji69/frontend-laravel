@@ -18,31 +18,13 @@ export function AppFooter() {
 
                 {/* Right: Navigation Links */}
                 <div className="flex items-center space-x-6 text-sm">
-
-                    <Link
-                        href=""
-                        className="flex items-center space-x-1 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                       <Mail />
-                        <span>Contact</span>
-                    </Link>
-
                     <a
-                        href=""
+                        href="https://github.com/dxn-xnt/ExamBits.git"
                         target="_blank"
                         className="flex items-center space-x-1 text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <Github />
                         <span>GitHub</span>
-                    </a>
-
-                    <a
-                        href=""
-                        target="_blank"
-                        className="flex items-center space-x-1 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        <Facebook />
-                        <span>Facebook</span>
                     </a>
                 </div>
             </div>

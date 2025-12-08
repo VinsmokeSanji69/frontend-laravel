@@ -26,7 +26,7 @@ interface RadioButtonProps {
 
 function RadioButton({option, isSelected, onSelect, className}: RadioButtonProps) {
     const baseClasses =
-        "px-4 py-1.5 text-md rounded-md border-2 border-card-foreground text-foreground transition-colors";
+        "px-4 py-1.5 text-md font-medium rounded-md border-2 border-card-foreground text-foreground transition-all hover:-translate-y-0.5 shadow-[4px_4px_0_#000000]";
 
     const colorClass = option.color === "blue"
         ? "bg-accent-blue hover:bg-accent-blue"

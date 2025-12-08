@@ -33,7 +33,7 @@ export function ExamCard({
         <div
             data-slot="exam-card"
             className={cn(
-                "flex flex-col w-full border-2 border-card-foreground rounded-md gap-1 px-3 py-2",
+                "flex flex-col w-full border-2 border-card-foreground rounded-md gap-1 px-3 py-2 shadow-[6px_6px_0_#000000] transition-all hover:-translate-y-0.5",
                 getColor(index),
                 className
             )}

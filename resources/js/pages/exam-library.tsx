@@ -1,4 +1,4 @@
-import { router } from "@inertiajs/react";
+import {router, usePage} from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import { AppFooter } from "@/components/app-footer";
 import { ExamCard } from "@/components/ui/exam-card";
@@ -13,12 +13,19 @@ type ExamLibraryData = {
     question_count?: number;
     created_at: string;
 };
-
+interface User {
+    id: number;
+    name: string;
+    email: string;
+}
 interface ExamLibraryProps {
+    auth?: {
+        user: User | null;
+    };
     exams: ExamLibraryData[];
 }
 
-export default function ExamLibrary({ exams = [] }: ExamLibraryProps) {
+export default function ExamLibrary({ exams = [], auth }: ExamLibraryProps) {
     const handleExamClick = (examId: number) => {
         // Use the correct route from your web.php: /exam-generator/view/{id}
         router.visit(`/exam-generator/view/${examId}`);
@@ -29,24 +36,27 @@ export default function ExamLibrary({ exams = [] }: ExamLibraryProps) {
     };
 
     return (
-        <AppLayout>
-            <div className="flex flex-col min-h-screen lg:min-h-[700px] w-screen p-6 gap-3 pt-20">
+        <AppLayout auth={auth}>
+            <div className="flex flex-col min-h-[550px] lg:min-h-[695px] w-screen p-6 gap-3 pt-20">
                 <div className="flex flex-row w-full justify-between items-center">
-                    <Button variant="fit" size="xs" onClick={handleBack}>
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Home
-                    </Button>
-                    <h1 className="text-xl font-semibold">My Exambits</h1>
-                    <p className="text-sm text-gray-600">
+                    <div className="flex flex-row gap-4">
+                        <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5" onClick={handleBack}>
+                            <ArrowLeft />
+                        </Button>
+
+                        <div className="flex flex-row w-full justify-between">
+                            <h1 className="text-2xl font-semibold">My Exam Library</h1>
+                        </div>
+                    </div>
+                    <p className="text-sm text-foreground">
                         {exams.length} {exams.length === 1 ? 'exam' : 'exams'}
                     </p>
                 </div>
 
                 {exams.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 gap-4">
-                        <div className="text-6xl">📚</div>
-                        <h2 className="text-xl font-semibold text-gray-700">No exams yet</h2>
-                        <p className="text-gray-500">Create your first exam to get started!</p>
+                    <div className="flex flex-col items-center justify-center min-h-[550px] gap-2">
+                        <h2 className="text-xl font-semibold text-foreground">No exams yet</h2>
+                        <p className="text-foreground">Create your first exam to get started!</p>
                     </div>
                 ) : (
                     <div className="w-full gap-4 grid grid-cols-1 lg:grid-cols-3 sm:grid-cols-2">
@@ -54,7 +64,6 @@ export default function ExamLibrary({ exams = [] }: ExamLibraryProps) {
                             <div
                                 key={exam.id}
                                 onClick={() => handleExamClick(exam.id)}
-                                className="cursor-pointer transition-transform hover:scale-105"
                             >
                                 <ExamCard
                                     data={{
