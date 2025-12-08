@@ -17,50 +17,40 @@ class AIController extends Controller
     }
 
     /**
-     * Upload document (PDF, DOC, DOCX, TXT) and generate questions using topic-based approach
+     * Upload PDF and generate questions using topic-based approach
      */
-    public function uploadDocumentAndGenerate(Request $request)
+    public function uploadPdfAndGenerate(Request $request)
     {
         // Increase PHP execution time for AI processing
         set_time_limit(180);
 
         $request->validate([
-            'file' => 'required|mimes:pdf,doc,docx,txt|max:10240', // Updated to accept multiple file types
+            'file' => 'required|mimes:pdf|max:10240',
             'num_questions' => 'integer|min:1|max:50',
             'difficulty' => 'in:easy,medium,hard',
             'type' => 'in:multiple-choice,true-false,short-answer'
         ]);
 
         try {
-            $file = $request->file('file');
-            $fileExtension = $file->getClientOriginalExtension();
+            // Step 1: Extract PDF text
+            Log::info('Step 1: Extracting PDF');
 
-            // Step 1: Extract document text
-            Log::info('Step 1: Extracting document', ['type' => $fileExtension]);
-
-            $documentResponse = Http::timeout(60)->attach(
+            $pdfResponse = Http::timeout(60)->attach(
                 'file',
-                file_get_contents($file->path()),
-                $file->getClientOriginalName()
-            )->post("{$this->flaskUrl}/api/ai/extract-document", [
-                'file_type' => $fileExtension
-            ]);
+                file_get_contents($request->file('file')->path()),
+                $request->file('file')->getClientOriginalName()
+            )->post("{$this->flaskUrl}/api/ai/extract-pdf");
 
-            if (!$documentResponse->successful()) {
-                Log::error('Document extraction failed', ['response' => $documentResponse->json()]);
+            if (!$pdfResponse->successful()) {
+                Log::error('PDF extraction failed', ['response' => $pdfResponse->json()]);
                 return response()->json([
-                    'error' => 'Document extraction failed',
-                    'details' => $documentResponse->json()
+                    'error' => 'PDF extraction failed',
+                    'details' => $pdfResponse->json()
                 ], 500);
             }
 
-            $documentData = $documentResponse->json();
-            $content = $documentData['content'];
-            Log::info('Document extracted', [
-                'type' => $fileExtension,
-                'chars' => strlen($content),
-                'pages' => $documentData['pages'] ?? 'N/A'
-            ]);
+            $content = $pdfResponse->json()['content'];
+            Log::info('PDF extracted', ['chars' => strlen($content)]);
 
             // Step 2: Analyze topic from content
             Log::info('Step 2: Analyzing topic');
@@ -105,8 +95,7 @@ class AIController extends Controller
                 'questions' => $data['questions'],
                 'count' => $data['count'] ?? count($data['questions']),
                 'topic' => $topic,
-                'file_type' => $fileExtension,
-                'source_pages' => $documentData['pages'] ?? null
+                'source_pages' => $pdfResponse->json()['pages'] ?? null
             ]);
 
         } catch (\Exception $e) {
@@ -116,15 +105,6 @@ class AIController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
-    }
-
-    /**
-     * Legacy method - redirects to uploadDocumentAndGenerate
-     * @deprecated Use uploadDocumentAndGenerate instead
-     */
-    public function uploadPdfAndGenerate(Request $request)
-    {
-        return $this->uploadDocumentAndGenerate($request);
     }
 
     /**
@@ -237,7 +217,7 @@ class AIController extends Controller
     }
 
     /**
-     * Analyze topic from content
+     * Analyze topic from content (NEW ENDPOINT)
      */
     public function analyzeTopic(Request $request)
     {
