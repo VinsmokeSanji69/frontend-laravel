@@ -37,7 +37,7 @@ class ExamController extends Controller
 
         // Handle POST - Generate exam
         $request->validate([
-            'file' => 'required|mimes:pdf|max:10240',
+            'file' => 'required|mimes:pdf,doc,docx,txt|max:10240', // Updated to accept multiple file types
             'difficulty' => 'required|in:easy,moderate,hard',
             'question_types' => 'required|array|min:1',
             'question_types.*' => 'in:multipleChoice,trueOrFalse,identification',
@@ -66,32 +66,41 @@ class ExamController extends Controller
 
             $questionsPerType = intval($request->num_questions ?? 10);
 
-            // ===== STEP 1: Extract PDF content =====
-            Log::info('Step 1: Extracting PDF content');
+            // ===== STEP 1: Extract document content =====
+            Log::info('Step 1: Extracting document content');
 
-            $pdfResponse = Http::timeout(60)
+            $file = $request->file('file');
+            $fileExtension = $file->getClientOriginalExtension();
+
+            // Determine the appropriate endpoint based on file type
+            $endpoint = "{$this->flaskUrl}/api/ai/extract-document";
+
+            $documentResponse = Http::timeout(60)
                 ->attach(
                     'file',
-                    file_get_contents($request->file('file')->path()),
-                    $request->file('file')->getClientOriginalName()
+                    file_get_contents($file->path()),
+                    $file->getClientOriginalName()
                 )
-                ->post("{$this->flaskUrl}/api/ai/extract-pdf");
+                ->post($endpoint, [
+                    'file_type' => $fileExtension
+                ]);
 
-            if (!$pdfResponse->successful()) {
-                $apiError = $pdfResponse->json()['error'] ?? 'Failed to extract PDF content. Please try again.';
+            if (!$documentResponse->successful()) {
+                $apiError = $documentResponse->json()['error'] ?? 'Failed to extract document content. Please try again.';
 
-                Log::error('PDF extraction failed', ['response' => $pdfResponse->json()]);
+                Log::error('Document extraction failed', ['response' => $documentResponse->json()]);
 
                 return redirect()->back()->withErrors([
                     'general' => $apiError
                 ]);
             }
 
-            $pdfData = $pdfResponse->json();
-            $content = $pdfData['content'];
+            $documentData = $documentResponse->json();
+            $content = $documentData['content'];
 
-            Log::info('PDF extracted', [
-                'pages' => $pdfData['pages'],
+            Log::info('Document extracted', [
+                'file_type' => $fileExtension,
+                'pages' => $documentData['pages'] ?? 'N/A',
                 'chars' => strlen($content)
             ]);
 
@@ -115,7 +124,7 @@ class ExamController extends Controller
             Log::info('Topic extracted', ['topic' => $extractedTopic]);
 
             // ===== STEP 3: Generate questions from FULL CONTENT =====
-            Log::info('Step 3: Generating questions from full PDF content');
+            Log::info('Step 3: Generating questions from full document content');
 
             $allQuestions = [];
             $totalQuestionsNeeded = count($selectedTypes) * $questionsPerType;
@@ -166,14 +175,15 @@ class ExamController extends Controller
             // ===== STEP 4: Save to database =====
             $exam = Exam::create([
                 'title' => $extractedTopic . ' - Exam (' . now()->format('Y-m-d') . ')',
-                'description' => "Generated from {$request->file('file')->getClientOriginalName()}",
+                'description' => "Generated from {$file->getClientOriginalName()}",
                 'total_questions' => count($allQuestions),
                 'user_id' => Auth::id(), // Associate with logged-in user
                 'settings' => [
                     'difficulty' => $request->difficulty,
                     'question_types' => $request->question_types,
-                    'source_file' => $request->file('file')->getClientOriginalName(),
-                    'source_pages' => $pdfData['pages'] ?? null,
+                    'source_file' => $file->getClientOriginalName(),
+                    'source_file_type' => $fileExtension,
+                    'source_pages' => $documentData['pages'] ?? null,
                     'extracted_topic' => $extractedTopic,
                     'subject' => $request->subject ?? $extractedTopic
                 ]
@@ -305,7 +315,7 @@ class ExamController extends Controller
                 ];
             });
 
-        return inertia('exam-library', [  // Changed from 'ExamLibrary' to 'exam-library'
+        return inertia('exam-library', [
             'exams' => $exams
         ]);
     }
