@@ -37,7 +37,7 @@ export default function ExamLibrary({ exams = [], auth }: ExamLibraryProps) {
 
     return (
         <AppLayout auth={auth}>
-            <div className="flex flex-col min-h-[550px] lg:min-h-[695px] w-screen p-6 gap-3 pt-20">
+            <div className="flex flex-col min-h-[690px] lg:min-h-[695px] w-screen p-4 gap-6 pt-20">
                 <div className="flex flex-row w-full justify-between items-center">
                     <div className="flex flex-row gap-4">
                         <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5" onClick={handleBack}>
