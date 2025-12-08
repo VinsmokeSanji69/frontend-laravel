@@ -15,42 +15,54 @@ import {
 } from '@/components/ui/sheet';
 
 import { cn } from '@/lib/utils';
-const home = () => '/';
-import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
+import { home } from '@/routes';
+import {type BreadcrumbItem, type NavItem, type SharedData} from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { Menu } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
+import {UserProfile} from "@/components/user-profile";
+
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Features',
-        href: "#features",
+        href: "/#features",
     },
     {
         title: 'How it Works',
-        href: "#how-it-works",
+        href: "/#how-it-works",
     },
     {
         title: 'Get Started',
-        href: "#generate-exam",
+        href: "/#generate-exam",
     },
 ];
+
 
 const activeItemStyles =
     'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
 
+interface User {
+    id: number;
+    name: string;
+    email: string;
+}
+
 interface AppHeaderProps {
+    auth?: {
+        user: User | null;
+    };
     breadcrumbs?: BreadcrumbItem[];
 }
 
-export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
+
+export function AppHeader({ auth ,breadcrumbs = [] }: AppHeaderProps) {
     const page = usePage<SharedData>();
-    const { auth } = page.props;
     return (
         <>
-            <div className="fixed w-full border-b-2 border-card-foreground bg-background">
-                <div className="mx-auto flex h-16 items-center px-10">
+            <div className="fixed w-full border-b-2 border-card-foreground bg-background z-2">
+                <div className="mx-auto flex h-16 items-center px-4">
 
                     {/* Mobile Menu */}
                     <div className="lg:hidden">
@@ -75,7 +87,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                     <AppLogoIcon className="h-6 w-6 fill-current text-black dark:text-white" />
                                 </SheetHeader>
                                 <div className="flex h-full flex-1 flex-col space-y-4 p-4">
-                                    <div className="flex h-full flex-col justify-between text-sm">
+                                    <div className="flex h-full flex-col justify-between text-lg">
                                         <div className="flex flex-col space-y-4">
                                             {mainNavItems.map((item) => (
                                                 <Link
@@ -93,6 +105,9 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                 </Link>
                                             ))}
                                         </div>
+                                        {auth?.user && (
+                                            <UserProfile user={auth.user} isMobile={true}></UserProfile>
+                                        )}
                                     </div>
                                 </div>
                             </SheetContent>
@@ -144,6 +159,9 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                                 )}
                                             </NavigationMenuLink>
                                         ))}
+                                        {auth?.user && (
+                                            <UserProfile user={auth.user}></UserProfile>
+                                        )}
                                     </NavigationMenuList>
                                 </NavigationMenu>
                             </div>

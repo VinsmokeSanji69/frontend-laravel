@@ -46,7 +46,7 @@ function ToggleGroupItem({
         <ToggleGroupPrimitive.Item
             data-slot="toggle-group-item"
             className={cn(
-                "px-4 py-1.5 text-md rounded-md border-2 border-card-foreground transition cursor-pointer data-[state=off]:bg-transparent text-foreground",
+                "px-4 py-1.5 text-md font-medium rounded-md border-2 border-card-foreground shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5 cursor-pointer data-[state=off]:bg-transparent text-foreground",
                 color === "blue" && "data-[state=on]:bg-accent-blue",
                 color === "green" && "data-[state=on]:bg-accent-green",
                 color === "red" && "data-[state=on]:bg-accent-red",

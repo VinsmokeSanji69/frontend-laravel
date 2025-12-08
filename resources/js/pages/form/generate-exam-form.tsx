@@ -101,7 +101,7 @@ export default function GenerateExamForm() {
     };
 
     return (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card w-full max-w-md h-fit border-2 border-card-foreground rounded-3xl z-10">
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card w-full sm:max-w-lg max-w-md h-fit border-2 border-card-foreground rounded-3xl z-10">
             <form onSubmit={handleSubmit}>
                 <FieldGroup>
                     <FieldSet>
@@ -119,12 +119,6 @@ export default function GenerateExamForm() {
                             </Button>
                         </FieldHeader>
                         <FieldContent>
-                            {error && (
-                                <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-800 rounded-lg text-sm">
-                                    {error}
-                                </div>
-                            )}
-
                             <Field>
                                 <FieldLabel htmlFor="difficulty">
                                     Difficulty
@@ -169,18 +163,15 @@ export default function GenerateExamForm() {
 
                             <Field>
                                 <FieldLabel htmlFor="file-upload">
-                                    Upload Material (PDF only)
+                                    Upload Material
                                 </FieldLabel>
                                 <FileUpload
                                     onFileSelect={setFile}
-                                    accept=".pdf"
+                                    accept=".pdf,.doc,.docx,.txt"
                                     maxSize={10}
                                     value={file}
                                     disabled={isSubmitting}
                                 />
-                                <FieldDescription className="mt-2 text-xs text-secondary-foreground text-left">
-                                    Maximum file size: 10MB
-                                </FieldDescription>
                             </Field>
                         </FieldContent>
                     </FieldSet>

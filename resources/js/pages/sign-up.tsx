@@ -87,7 +87,7 @@ export default function SignUp() {
                                 required
                                 tabIndex={3}
                                 autoComplete="new-password"
-                                placeholder="Password (min. 8 characters)"
+                                placeholder="Password"
                             />
                             <InputError message={errors.password} />
                         </div>
@@ -117,7 +117,7 @@ export default function SignUp() {
                             disabled={processing}
                             data-test="signup-button"
                         >
-                            {processing ? 'Signing up...' : 'Sign up'}
+                            Sign up
                         </Button>
 
                         <div className="flex flex-row items-center justify-center space-x-1">

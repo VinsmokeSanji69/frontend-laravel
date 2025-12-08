@@ -42,8 +42,15 @@ type QuestionData = {
         answer: string;
     }>;
 };
-
+interface User {
+    id: number;
+    name: string;
+    email: string;
+}
 type Props = {
+    auth?: {
+        user: User | null;
+    };
     exam: ExamData;
     questions: QuestionData;
 };
@@ -64,7 +71,7 @@ function generateOptions(data: QuestionData) {
         }));
 }
 
-export default function ExamView({ exam, questions }: Props) {
+export default function ExamView({ exam, questions, auth }: Props) {
     const options = generateOptions(questions);
 
     const getInitialSelected = () => {
@@ -140,14 +147,13 @@ export default function ExamView({ exam, questions }: Props) {
     };
 
     return (
-        <AppLayout>
-            <div className="flex flex-1 min-h-[620px] mt-20 flex-col items-center justify-start gap-3 rounded-xl px-10 pb-10">
+        <AppLayout auth={auth}>
+            <div className="flex flex-1 min-h-[620px] mt-20 flex-col items-center justify-start gap-3 rounded-xl px-4 pb-10">
                 <div className="flex flex-row w-full justify-between">
-                    <Button variant="fit" size="xs" onClick={handleBack}>
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Library
+                    <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5" onClick={handleBack}>
+                        <ArrowLeft />
                     </Button>
-                    <Button variant="fit" size="xs" onClick={handlePublish}>
+                    <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5" onClick={handlePublish}>
                         Publish
                     </Button>
                 </div>
