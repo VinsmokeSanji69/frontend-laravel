@@ -164,9 +164,9 @@ class ExamController extends Controller
             Log::info('Total questions generated', ['count' => count($allQuestions)]);
 
             // ===== STEP 4: Save to database =====
-            // CHANGED: Removed date from title
+            // CHANGED: Format as "Topic Exam" (e.g., "Photosynthesis Exam")
             $exam = Exam::create([
-                'title' => $extractedTopic,
+                'title' => $extractedTopic . ' Exam',
                 'description' => "Generated from {$request->file('file')->getClientOriginalName()}",
                 'total_questions' => count($allQuestions),
                 'user_id' => Auth::id(), // Associate with logged-in user
@@ -273,7 +273,7 @@ class ExamController extends Controller
         ]);
 
         $exam = Exam::findOrFail($id);
-        // CHANGED: Now directly saves the new title without adding date
+        // Saves the new title exactly as provided by user
         $exam->title = $request->title;
         $exam->save();
 
