@@ -167,7 +167,7 @@ export default function GenerateExamForm() {
                                 </FieldLabel>
                                 <FileUpload
                                     onFileSelect={setFile}
-                                    accept=".pdf,.doc,.docx,.txt"
+                                    accept=".pdf"
                                     maxSize={10}
                                     value={file}
                                     disabled={isSubmitting}
