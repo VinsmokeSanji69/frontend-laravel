@@ -40,8 +40,11 @@ export function ExamCard({
             {...props}
         >
             <div className="flex flex-row w-full gap-3 items-center">
-                <h1 className="text-2xl font-medium">{data.title}</h1>
+                <h1 className="text-2xl font-medium overflow-hidden whitespace-nowrap text-ellipsis w-full">
+                    {data.title}
+                </h1>
             </div>
+
             <div className="flex flex-col gap-1">
                 <div className="flex flex-row w-fit space-x-1">
                     <p className="text-md font-medium text-foreground">{data.questionCount} Questions</p>
