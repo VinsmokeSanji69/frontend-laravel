@@ -93,7 +93,7 @@ export default function LogIn() {
                             tabIndex={3}
                             disabled={processing}
                         >
-                            {processing ? 'Logging in...' : 'Log in'}
+                            Log in
                         </Button>
 
                         <div className="flex flex-row items-center justify-center space-x-1">

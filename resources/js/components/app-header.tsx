@@ -104,6 +104,14 @@ export function AppHeader({ auth ,breadcrumbs = [] }: AppHeaderProps) {
                                                     <span>{item.title}</span>
                                                 </Link>
                                             ))}
+                                            {!auth?.user && (
+                                                <Link
+                                                    href={"#"}
+                                                    className="flex items-center space-x-2 font-medium"
+                                                >
+                                                    Sign In
+                                                </Link>
+                                            )}
                                         </div>
                                         {auth?.user && (
                                             <UserProfile user={auth.user} isMobile={true}></UserProfile>
@@ -159,9 +167,21 @@ export function AppHeader({ auth ,breadcrumbs = [] }: AppHeaderProps) {
                                                 )}
                                             </NavigationMenuLink>
                                         ))}
-                                        {auth?.user && (
+                                        {auth?.user? (
                                             <UserProfile user={auth.user}></UserProfile>
-                                        )}
+                                        ):(
+                                            <NavigationMenuLink>
+                                                <Link
+                                                    href={"#"}
+                                                    className={cn(
+                                                        navigationMenuTriggerStyle(),
+                                                        'h-9 cursor-pointer px-3',
+                                                    )}
+                                                >
+                                                    Sign In
+                                                </Link>
+                                            </NavigationMenuLink>
+                                            )}
                                     </NavigationMenuList>
                                 </NavigationMenu>
                             </div>
