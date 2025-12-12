@@ -5,20 +5,23 @@ import {
     FieldGroup,
     FieldLabel,
     FieldHeader,
-    FieldSet, FieldFooter, FieldLegend,
+    FieldSet, FieldFooter, FieldLegend, FieldSeparator,
 } from "@/components/ui/field"
-import { X } from "lucide-react";
+import {Plus, X} from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import FileUpload from "@/components/file-upload";
 import ToggleRadioGroup from "@/components/ui/radio-group";
 import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import {Input} from "@/components/ui/input";
+import InputNumber from "@/components/ui/input-number";
 
 type Option = {
     id: string;
     label: string;
     color?: "blue" | "green" | "red" | "violet" | "yellow";
 };
+type QuestionTypeOption = "Multiple Choice" | "True or False" | "Identification";
 
 export default function GenerateExamForm() {
     const [difficulty, setDifficulty] = useState<string>('moderate');
@@ -26,6 +29,19 @@ export default function GenerateExamForm() {
     const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string>('');
+
+    const options: QuestionTypeOption[] = ["Multiple Choice", "True or False", "Identification"];
+    const [selected, setSelected] = useState<QuestionTypeOption[]>([]);
+
+    const handleSelect = (option: QuestionTypeOption) => {
+        if (!selected.includes(option)) {
+            setSelected([...selected, option]);
+        }
+    };
+
+    const handleRemove = (option: QuestionTypeOption) => {
+        setSelected(selected.filter((o) => o !== option));
+    };
 
     const difficultyOptions: Option[] = [
         { id: "easy", label: "Easy", color: "green" },
@@ -101,8 +117,8 @@ export default function GenerateExamForm() {
     };
 
     return (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card w-full sm:max-w-lg max-w-md h-fit border-2 border-card-foreground rounded-3xl z-10">
-            <form onSubmit={handleSubmit}>
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card w-full sm:max-w-lg max-w-md h-md border-2 border-card-foreground rounded-3xl z-10">
+            <form onSubmit={handleSubmit} className="h-md">
                 <FieldGroup>
                     <FieldSet>
                         <FieldHeader>
@@ -120,50 +136,70 @@ export default function GenerateExamForm() {
                         </FieldHeader>
                         <FieldContent>
                             <Field>
-                                <FieldLabel htmlFor="difficulty">
-                                    Difficulty
-                                </FieldLabel>
-                                <ToggleRadioGroup
-                                    options={difficultyOptions}
-                                    value={difficulty}
-                                    onValueChange={setDifficulty}
-                                    disabled={isSubmitting}
-                                />
-                            </Field>
-
-                            <Field>
                                 <FieldLabel htmlFor="question-types">
                                     Question Types
                                 </FieldLabel>
-                                <ToggleGroup
-                                    type="multiple"
-                                    variant="outline"
-                                    value={questionTypes}
-                                    onValueChange={(value) => {
-                                        if (value.length > 0) {
-                                            setQuestionTypes(value);
-                                        }
-                                    }}
-                                    disabled={isSubmitting}
-                                >
-                                    <ToggleGroupItem value="multipleChoice" color="blue">
-                                        Multiple Choice
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem value="trueOrFalse" color="green">
-                                        True or False
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem value="identification" color="red">
-                                        Identification
-                                    </ToggleGroupItem>
-                                </ToggleGroup>
-                                <FieldDescription className="mt-2 text-xs text-secondary-foreground text-left">
-                                    Select one or more question types
-                                </FieldDescription>
+                                <div className="w-full grid grid-cols-3 gap-2">
+                                    {options
+                                        .filter((option) => !selected.includes(option))
+                                        .map((option) => (
+                                            <p
+                                                key={option}
+                                                className="text-md font-medium text-foreground px-4 py-1.5 rounded-md border-2 border-card-foreground shadow-[4px_4px_0_#000000] cursor-pointer transition-transform"
+                                                onClick={() => handleSelect(option)}
+                                            >
+                                                {option}
+                                            </p>
+                                        ))}
+                                </div>
+                            </Field>
+
+                            <Field>
+                                <FieldLabel htmlFor="difficulty">
+                                    Selected
+                                </FieldLabel>
+                                <div className="flex flex-col w-full text-left px-2 gap-4">
+                                    {selected.map((option) => (
+                                        <div key={option} className="flex flex-col gap-2 border-b-2 pb-2 gap-3">
+                                            <div className="flex items-center gap-2 w-fit">
+                                                <p className="bg-accent-blue text-md font-medium text-foreground px-4 py-1.5 rounded-md border-2 border-card-foreground shadow-[4px_4px_0_#000000] cursor-pointer">
+                                                    {option}
+                                                </p>
+                                                <Button
+                                                    variant="fit"
+                                                    size="xs"
+                                                    type="button"
+                                                    className="transition-all shadow-[4px_4px_0_#000000]"
+                                                    onClick={() => handleRemove(option)}
+                                                >
+                                                    <X />
+                                                </Button>
+                                            </div>
+
+                                            {/* Difficulty Inputs */}
+                                            <div className="flex flex-col gap-2">
+                                                <FieldLabel htmlFor="difficulty"> Difficulty </FieldLabel>
+                                                <div className="w-full grid grid-cols-3 gap-2">
+                                                    <div className="flex flex-col gap-1">
+                                                        <InputNumber label="Easy" />
+                                                    </div>
+                                                    <div className="flex flex-col gap-1">
+                                                        <InputNumber label="Moderate" />
+                                                    </div>
+                                                    <div className="flex flex-col gap-1">
+                                                        <InputNumber label="Hard" />
+                                                    </div>
+                                                </div>
+                                                <FieldDescription className="ml-2">Define the difficulty ranges for the question type.</FieldDescription>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </Field>
 
                             <Field>
                                 <FieldLabel htmlFor="file-upload">
-                                    Upload Material
+                                    Exam Source
                                 </FieldLabel>
                                 <FileUpload
                                     onFileSelect={setFile}
