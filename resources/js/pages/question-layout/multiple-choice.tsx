@@ -60,11 +60,7 @@ export function MultipleChoice({ data, className, index, onDelete, ...props }: M
 
     return (
         <div
-            data-slot="multiple-choice-layout"
-            className={cn(
-                "flex w-full flex-col border-2 border-card-foreground rounded-lg gap-2 px-4 py-3 shadow-[6px_6px_0_#000000] transition-all hover:-translate-y-0.5",
-                className
-            )}
+            className={cn("flex w-full flex-col border-2 border-card-foreground rounded-lg gap-2 px-4 py-3 shadow-[6px_6px_0_#000000] transition-all hover:-translate-y-0.5", className)}
             {...props}
         >
             <div className="flex justify-between items-start">

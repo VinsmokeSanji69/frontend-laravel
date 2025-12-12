@@ -41,11 +41,7 @@ export function TrueOrFalse({ data, className, index, onDelete, ...props }: True
 
     return (
         <div
-            data-slot="true-or-false-layout"
-            className={cn(
-                "flex w-full flex-col border-2 border-card-foreground rounded-lg gap-2 px-4 py-3 hover:bg-muted/40 shadow-[6px_6px_0_#000000] transition-all hover:-translate-y-0.5",
-                className
-            )}
+            className={cn("flex w-full flex-col border-2 border-card-foreground rounded-lg gap-2 px-4 py-3 hover:bg-muted/40 shadow-[6px_6px_0_#000000] transition-all hover:-translate-y-0.5", className)}
             {...props}
         >
             <div className="flex justify-between items-start">
