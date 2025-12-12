@@ -13,6 +13,7 @@ class Question extends Model
         'exam_id',
         'question_text',
         'question_type',
+        'difficulty',
         'options',
         'correct_answer',
         'explanation',

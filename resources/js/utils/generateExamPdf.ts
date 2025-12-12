@@ -116,7 +116,7 @@ export const generateExamPdf = (exam: ExamData, questions: QuestionData) => {
 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
-    const topicInfo = `Topic: ${exam.extracted_topic} | Difficulty: ${exam.difficulty}`;
+    const topicInfo = `Topic: ${exam.extracted_topic} `;
     pdf.text(topicInfo, pageWidth / 2, yPosition, { align: 'center' });
     yPosition += 5;
 

@@ -60,6 +60,10 @@ Route::prefix('exam-generator')->middleware('auth')->group(function () {
     // Generate Answer Key PDF
     Route::get('/answer-key/{examId}', [PublishController::class, 'generateAnswerKey'])
         ->name('exam.answer-key');
+
+    Route::post('/shuffle-questions/{examId}', [ExamController::class, 'shuffleQuestions'])
+        ->middleware('auth')
+        ->name('exam.shuffleQuestions');
 });
 
 // routes/web.php

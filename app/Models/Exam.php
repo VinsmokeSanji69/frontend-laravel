@@ -16,7 +16,7 @@ class Exam extends Model
         'share_code',
         'settings',
         'total_questions',
-        'user_id'  // ADD THIS LINE
+        'user_id'
     ];
 
     protected $casts = [

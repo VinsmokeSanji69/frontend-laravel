@@ -21,7 +21,6 @@ class ExamController extends Controller
 
     public function index()
     {
-        // Auth data is automatically shared via HandleInertiaRequests middleware
         return Inertia::render('landing-page');
     }
 
@@ -32,104 +31,145 @@ class ExamController extends Controller
         }
 
         // Increase PHP execution time for AI processing
-        set_time_limit(300); // 5 minutes
+        set_time_limit(300);
         ini_set('max_execution_time', '300');
 
-        // Handle POST - Generate exam
+        // Validation rules
         $request->validate([
-            'file' => 'required|mimes:pdf|max:10240',
-            'difficulty' => 'required|in:easy,moderate,hard',
+            'file' => 'nullable|mimes:pdf|max:10240',
+            'topic' => 'nullable|string|max:255',
             'question_types' => 'required|array|min:1',
-            'question_types.*' => 'in:multipleChoice,trueOrFalse,identification',
-            'num_questions' => 'integer|min:1|max:50',
-            'subject' => 'nullable|string|max:100'
+            'question_types.*.type' => 'required|in:Multiple Choice,True or False,Identification',
+            'question_types.*.difficulties' => 'required|array',
+            'question_types.*.difficulties.easy' => 'required|integer|min:0',
+            'question_types.*.difficulties.moderate' => 'required|integer|min:0',
+            'question_types.*.difficulties.hard' => 'required|integer|min:0',
+        ], [
+            'file.required_without' => 'Please provide either a PDF file or a topic.',
+            'topic.required_without' => 'Please provide either a PDF file or a topic.',
         ]);
 
+        // Ensure either file or topic is provided
+        if (!$request->hasFile('file') && !$request->filled('topic')) {
+            return back()->withErrors([
+                'general' => 'Please provide either a PDF file or a topic.'
+            ]);
+        }
+
         try {
-            // Map frontend difficulty to backend
+            $content = null;
+            $extractedTopic = null;
+            $sourceFile = null;
+            $sourcePages = null;
+
+            // ===== STEP 1: Get content (either from PDF or topic) =====
+            if ($request->hasFile('file')) {
+                Log::info('Step 1: Extracting PDF content');
+
+                // FIX: Added withoutVerifying() to bypass SSL error
+                $pdfResponse = Http::withoutVerifying()
+                    ->timeout(60)
+                    ->attach(
+                        'file',
+                        file_get_contents($request->file('file')->path()),
+                        $request->file('file')->getClientOriginalName()
+                    )
+                    ->post("{$this->flaskUrl}/api/ai/extract-pdf");
+
+                if (!$pdfResponse->successful()) {
+                    $apiError = $pdfResponse->json()['error'] ?? 'Failed to extract PDF content. Please try again.';
+                    Log::error('PDF extraction failed', ['response' => $pdfResponse->json()]);
+                    return back()->withErrors(['general' => $apiError]);
+                }
+
+                $pdfData = $pdfResponse->json();
+                $content = $pdfData['content'];
+                $sourceFile = $request->file('file')->getClientOriginalName();
+                $sourcePages = $pdfData['pages'] ?? null;
+
+                Log::info('PDF extracted', [
+                    'pages' => $pdfData['pages'],
+                    'chars' => strlen($content)
+                ]);
+
+                // Analyze topic from PDF content
+                Log::info('Step 2: Analyzing main topic from content');
+
+                // FIX: Added withoutVerifying() to bypass SSL error
+                $topicResponse = Http::withoutVerifying()
+                    ->timeout(90)
+                    ->withHeaders(['Accept' => 'application/json'])
+                    ->post("{$this->flaskUrl}/api/ai/analyze-topic", [
+                        'content' => $content
+                    ]);
+
+                if ($topicResponse->successful()) {
+                    $topicData = $topicResponse->json();
+                    $extractedTopic = $topicData['topic'];
+                    Log::info('Topic extracted', ['topic' => $extractedTopic]);
+                } else {
+                    Log::warning('Topic analysis failed, using filename');
+                    $extractedTopic = pathinfo($sourceFile, PATHINFO_FILENAME);
+                }
+            } else {
+                // User provided topic directly
+                $extractedTopic = $request->topic;
+                $content = $request->topic; // Use topic as content for question generation
+                Log::info('Using user-provided topic', ['topic' => $extractedTopic]);
+            }
+
+            // ===== STEP 2: Process question types and difficulties =====
+            $questionTypeMap = [
+                'Multiple Choice' => 'multiple-choice',
+                'True or False' => 'true-false',
+                'Identification' => 'identification'
+            ];
+
             $difficultyMap = [
                 'easy' => 'easy',
                 'moderate' => 'medium',
                 'hard' => 'hard'
             ];
 
-            // Map frontend question types to backend
-            $typeMap = [
-                'multipleChoice' => 'multiple-choice',
-                'trueOrFalse' => 'true-false',
-                'identification' => 'identification'
-            ];
+            // Build question requests
+            $questionRequests = [];
+            foreach ($request->question_types as $qtData) {
+                $backendType = $questionTypeMap[$qtData['type']];
 
-            $selectedTypes = array_map(function($type) use ($typeMap) {
-                return $typeMap[$type] ?? 'multiple-choice';
-            }, $request->question_types);
+                foreach ($qtData['difficulties'] as $difficulty => $count) {
+                    if ($count > 0) {
+                        $questionRequests[] = [
+                            'type' => $backendType,
+                            'difficulty' => $difficultyMap[$difficulty],
+                            'count' => (int)$count
+                        ];
+                    }
+                }
+            }
 
-            $questionsPerType = intval($request->num_questions ?? 10);
-
-            // ===== STEP 1: Extract PDF content =====
-            Log::info('Step 1: Extracting PDF content');
-
-            $pdfResponse = Http::timeout(60)
-                ->attach(
-                    'file',
-                    file_get_contents($request->file('file')->path()),
-                    $request->file('file')->getClientOriginalName()
-                )
-                ->post("{$this->flaskUrl}/api/ai/extract-pdf");
-
-            if (!$pdfResponse->successful()) {
-                $apiError = $pdfResponse->json()['error'] ?? 'Failed to extract PDF content. Please try again.';
-
-                Log::error('PDF extraction failed', ['response' => $pdfResponse->json()]);
-
-                return redirect()->back()->withErrors([
-                    'general' => $apiError
+            if (empty($questionRequests)) {
+                return back()->withErrors([
+                    'general' => 'Please specify at least one question with a difficulty level.'
                 ]);
             }
 
-            $pdfData = $pdfResponse->json();
-            $content = $pdfData['content'];
-
-            Log::info('PDF extracted', [
-                'pages' => $pdfData['pages'],
-                'chars' => strlen($content)
-            ]);
-
-            // ===== STEP 2: Analyze topic from content =====
-            Log::info('Step 2: Analyzing main topic from content');
-
-            $topicResponse = Http::timeout(90)
-                ->withHeaders(['Accept' => 'application/json'])
-                ->post("{$this->flaskUrl}/api/ai/analyze-topic", [
-                    'content' => $content
-                ]);
-
-            if (!$topicResponse->successful()) {
-                Log::error('Topic analysis failed', ['response' => $topicResponse->json()]);
-                return back()->with('error', 'Failed to analyze content topic. Please try again.');
-            }
-
-            $topicData = $topicResponse->json();
-            $extractedTopic = $topicData['topic'];
-
-            Log::info('Topic extracted', ['topic' => $extractedTopic]);
-
-            // ===== STEP 3: Generate questions from FULL CONTENT =====
-            Log::info('Step 3: Generating questions from full PDF content');
+            // ===== STEP 3: Generate questions =====
+            Log::info('Step 3: Generating questions', ['requests' => $questionRequests]);
 
             $allQuestions = [];
-            $totalQuestionsNeeded = count($selectedTypes) * $questionsPerType;
 
-            foreach ($selectedTypes as $type) {
-                Log::info("Generating {$questionsPerType} {$type} questions from full content");
+            foreach ($questionRequests as $qRequest) {
+                Log::info("Generating {$qRequest['count']} {$qRequest['type']} questions at {$qRequest['difficulty']} difficulty");
 
                 try {
-                    $questionsResponse = Http::timeout(120)
+                    // FIX: Added withoutVerifying() to bypass SSL error
+                    $questionsResponse = Http::withoutVerifying()
+                        ->timeout(120)
                         ->post("{$this->flaskUrl}/api/ai/generate-questions", [
                             'content' => $content,
-                            'num_questions' => $questionsPerType,
-                            'difficulty' => $difficultyMap[$request->difficulty],
-                            'type' => $type
+                            'num_questions' => $qRequest['count'],
+                            'difficulty' => $qRequest['difficulty'],
+                            'type' => $qRequest['type']
                         ]);
 
                     if ($questionsResponse->successful()) {
@@ -137,55 +177,58 @@ class ExamController extends Controller
 
                         if (isset($data['questions']) && count($data['questions']) > 0) {
                             foreach ($data['questions'] as &$question) {
-                                $question['type'] = $type;
+                                $question['type'] = $qRequest['type'];
+                                $question['difficulty'] = $qRequest['difficulty'];
                             }
 
                             $generatedCount = count($data['questions']);
                             $allQuestions = array_merge($allQuestions, $data['questions']);
 
-                            Log::info("Successfully generated {$generatedCount} {$type} questions");
+                            Log::info("Successfully generated {$generatedCount} questions");
                         } else {
-                            Log::warning("Question generation returned empty for type {$type}");
+                            Log::warning("Question generation returned empty", ['request' => $qRequest]);
                         }
                     } else {
                         $errorData = $questionsResponse->json();
-                        Log::error("Question generation failed for type {$type}", ['error' => $errorData]);
+                        Log::error("Question generation failed", ['error' => $errorData, 'request' => $qRequest]);
                     }
 
                 } catch (\Exception $e) {
-                    Log::error("Exception while generating {$type} questions: " . $e->getMessage());
+                    Log::error("Exception while generating questions: " . $e->getMessage());
                 }
             }
 
             if (empty($allQuestions)) {
-                return back()->with('error', 'Failed to generate questions from the content. Please try again.');
+                return back()->withErrors([
+                    'general' => 'Failed to generate questions. Please try again.'
+                ]);
             }
 
             Log::info('Total questions generated', ['count' => count($allQuestions)]);
 
             // ===== STEP 4: Save to database =====
-            // CHANGED: Format as "Topic Exam" (e.g., "Photosynthesis Exam")
             $exam = Exam::create([
                 'title' => $extractedTopic . ' Exam',
-                'description' => "Generated from {$request->file('file')->getClientOriginalName()}",
+                'description' => $sourceFile ? "Generated from {$sourceFile}" : "Generated from topic: {$extractedTopic}",
                 'total_questions' => count($allQuestions),
-                'user_id' => Auth::id(), // Associate with logged-in user
+                'user_id' => Auth::id(),
                 'settings' => [
-                    'difficulty' => $request->difficulty,
-                    'question_types' => $request->question_types,
-                    'source_file' => $request->file('file')->getClientOriginalName(),
-                    'source_pages' => $pdfData['pages'] ?? null,
+                    'question_types_config' => $request->question_types,
+                    'source_file' => $sourceFile,
+                    'source_pages' => $sourcePages,
                     'extracted_topic' => $extractedTopic,
-                    'subject' => $request->subject ?? $extractedTopic
+                    'user_provided_topic' => $request->topic,
+                    'generation_method' => $request->hasFile('file') ? 'pdf' : 'topic'
                 ]
             ]);
 
-            // Save questions
+            // Save questions with difficulty
             foreach ($allQuestions as $index => $q) {
                 Question::create([
                     'exam_id' => $exam->id,
                     'question_text' => $q['question'],
                     'question_type' => $q['type'],
+                    'difficulty' => $q['difficulty'],
                     'options' => json_encode($q['options'] ?? []),
                     'correct_answer' => $q['correct_answer'],
                     'explanation' => null,
@@ -201,7 +244,7 @@ class ExamController extends Controller
             ]);
 
             return redirect()->route('exam.view', ['id' => $exam->id])
-                ->with('success', "Successfully generated exam on topic: {$extractedTopic} ({$exam->total_questions} questions)");
+                ->with('success', "Successfully generated exam: {$extractedTopic} ({$exam->total_questions} questions)");
 
         } catch (\Exception $e) {
             Log::error('Exam generation failed', [
@@ -209,7 +252,9 @@ class ExamController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return back()->with('error', 'Failed to generate exam: ' . $e->getMessage());
+            return back()->withErrors([
+                'general' => 'Failed to generate exam: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -237,7 +282,8 @@ class ExamController extends Controller
             $questionData = [
                 'id' => $question->id,
                 'question' => $question->question_text,
-                'answer' => $question->correct_answer
+                'answer' => $question->correct_answer,
+                'difficulty' => $question->difficulty
             ];
 
             if ($question->question_type === 'multiple-choice') {
@@ -257,10 +303,9 @@ class ExamController extends Controller
                 'id' => $exam->id,
                 'title' => $exam->title,
                 'topic' => $extractedTopic,
-                'question_types' => $exam->settings['question_types'] ?? [],
-                'difficulty' => ucfirst($exam->settings['difficulty'] ?? 'N/A'),
+                'question_types_config' => $exam->settings['question_types_config'] ?? [],
                 'extracted_topic' => $extractedTopic,
-                'subject' => $exam->settings['subject'] ?? null
+                'generation_method' => $exam->settings['generation_method'] ?? null
             ],
             'questions' => $transformedQuestions
         ]);
@@ -273,7 +318,6 @@ class ExamController extends Controller
         ]);
 
         $exam = Exam::findOrFail($id);
-        // Saves the new title exactly as provided by user
         $exam->title = $request->title;
         $exam->save();
 
@@ -290,6 +334,23 @@ class ExamController extends Controller
         ]);
     }
 
+    public function shuffleQuestions(Request $request, $id)
+    {
+        $request->validate([
+            '*.id' => 'required|integer|exists:questions,id',
+            '*.order' => 'required|integer|min:1',
+        ]);
+
+        foreach ($request->all() as $item) {
+            $question = Question::find($item['id']);
+            $question->order = $item['order'];
+            $question->save();
+        }
+
+        return response()->json(['message' => 'Questions shuffled successfully']);
+    }
+
+
     public function library()
     {
         $exams = Exam::where('user_id', auth()->id())
@@ -300,10 +361,10 @@ class ExamController extends Controller
                 return [
                     'id' => $exam->id,
                     'title' => $exam->title,
-                    'topic' => $exam->settings['subject'] ?? 'Unknown',
-                    'extracted_topic' => $exam->settings['extracted_topic'] ?? 'Unknown',
+                    'topic' => $exam->settings['extracted_topic'] ?? 'Unknown',
                     'question_count' => $exam->questions->count(),
                     'created_at' => $exam->created_at->toISOString(),
+                    'generation_method' => $exam->settings['generation_method'] ?? null,
                 ];
             });
 
