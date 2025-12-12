@@ -153,9 +153,14 @@ export default function ExamView({ exam, questions, auth }: Props) {
                     <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5" onClick={handleBack}>
                         <ArrowLeft />
                     </Button>
-                    <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5" onClick={handlePublish}>
-                        Publish
-                    </Button>
+                    <div className="flex flex-row gap-2">
+                        <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5"> {/*onClick={}*/}
+                            Shuffle Question
+                        </Button>
+                        <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5" onClick={handlePublish}>
+                            Publish
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="flex flex-col w-full border-2 border-card-foreground rounded-md gap-1 px-3 py-2">
