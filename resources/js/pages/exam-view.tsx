@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pencil, Check, X, Shuffle } from "lucide-react";
+import { ArrowLeft, Pencil, Check, X } from "lucide-react";
 import { RadioButton } from "@/components/ui/radio-group";
 import { MultipleChoice } from "@/pages/question-layout/multiple-choice";
 import { TrueOrFalse } from "@/pages/question-layout/true-or-false";
@@ -37,15 +37,15 @@ type QuestionData = {
         answer: string;
     }>;
 };
-
 interface User {
     id: number;
     name: string;
     email: string;
 }
-
 type Props = {
-    auth?: { user: User | null };
+    auth?: {
+        user: User | null;
+    };
     exam: ExamData;
     questions: QuestionData;
 };
@@ -66,16 +66,6 @@ function generateOptions(data: QuestionData) {
         }));
 }
 
-// Helper to shuffle array
-function shuffleArray<T>(array: T[]): T[] {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-}
-
 export default function ExamView({ exam, questions, auth }: Props) {
     const options = generateOptions(questions);
 
@@ -87,74 +77,40 @@ export default function ExamView({ exam, questions, auth }: Props) {
     };
 
     const [selected, setSelected] = useState<string>(getInitialSelected());
-    const [examQuestions, setExamQuestions] = useState<QuestionData>({ ...questions });
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [editedTitle, setEditedTitle] = useState(exam.title);
     const [isSaving, setIsSaving] = useState(false);
 
-    const handleBack = () => router.visit("/exam-library");
+    const handleBack = () => {
+        // Go back to library instead of exam-generator
+        router.visit('/exam-library');
+    };
 
     const handlePublish = () => {
         try {
-            generateExamPdf(exam, examQuestions);
+            generateExamPdf(exam, questions);
         } catch (error) {
-            console.error("Error generating PDF:", error);
-            alert("Failed to generate PDF. Please try again.");
+            console.error('Error generating PDF:', error);
+            alert('Failed to generate PDF. Please try again.');
         }
     };
 
-    const handleShuffle = async () => {
-        const result = await Swal.fire({
-            title: "Shuffle Questions?",
-            text: "All questions will be randomly rearranged. This action is permanent but you can shuffle again.",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#2563eb",
-            cancelButtonColor: "#6b7280",
-            confirmButtonText: "Shuffle",
-        });
-
-        if (!result.isConfirmed) return;
-
-        // Shuffle each type
-        const shuffledQuestions: QuestionData = {
-            multiple: shuffleArray(examQuestions.multiple),
-            trueOrFalse: shuffleArray(examQuestions.trueOrFalse),
-            identification: shuffleArray(examQuestions.identification),
-        };
-
-        setExamQuestions(shuffledQuestions);
-
-        try {
-            const payload = [
-                ...shuffledQuestions.multiple.map((q, i) => ({ id: q.id, order: i + 1 })),
-                ...shuffledQuestions.trueOrFalse.map((q, i) => ({ id: q.id, order: i + 1 })),
-                ...shuffledQuestions.identification.map((q, i) => ({ id: q.id, order: i + 1 })),
-            ];
-
-            // Wrap the array in an object to fix TS2345
-            await router.post(
-                `/exam-generator/shuffle-questions/${exam.id}`,
-                { questions: payload },
-                { preserveScroll: true }
-            );
-
-
-            Swal.fire("Shuffled!", "Questions have been shuffled successfully.", "success");
-        } catch (error) {
-            console.error(error);
-            Swal.fire("Error", "Failed to save new question order.", "error");
-        }
-    };
-
-    // --- Title editing handlers ---
     const handleSaveTitle = async () => {
-        if (editedTitle.trim() === "") return alert("Title cannot be empty");
-        if (editedTitle === exam.title) return setIsEditingTitle(false);
+        if (editedTitle.trim() === '') {
+            alert('Title cannot be empty');
+            setEditedTitle(exam.title);
+            setIsEditingTitle(false);
+            return;
+        }
+
+        if (editedTitle === exam.title) {
+            setIsEditingTitle(false);
+            return;
+        }
 
         setIsSaving(true);
-        router.patch(
-            `/exam/${exam.id}/update-title`,
+
+        router.patch(`/exam/${exam.id}/update-title`,
             { title: editedTitle },
             {
                 preserveScroll: true,
@@ -162,11 +118,12 @@ export default function ExamView({ exam, questions, auth }: Props) {
                     setIsEditingTitle(false);
                     setIsSaving(false);
                 },
-                onError: () => {
+                onError: (errors) => {
+                    console.error('Failed to update title:', errors);
+                    alert('Failed to update title. Please try again.');
                     setEditedTitle(exam.title);
                     setIsSaving(false);
-                    alert("Failed to update title");
-                },
+                }
             }
         );
     };
@@ -177,25 +134,23 @@ export default function ExamView({ exam, questions, auth }: Props) {
     };
 
     const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") handleSaveTitle();
-        else if (e.key === "Escape") handleCancelEdit();
+        if (e.key === 'Enter') {
+            handleSaveTitle();
+        } else if (e.key === 'Escape') {
+            handleCancelEdit();
+        }
     };
 
     return (
         <AppLayout auth={auth}>
             <div className="flex flex-1 min-h-[620px] mt-20 flex-col items-center justify-start gap-3 rounded-xl px-4 pb-10">
-                <div className="flex flex-row w-full justify-between gap-2">
-                    <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000]" onClick={handleBack}>
+                <div className="flex flex-row w-full justify-between">
+                    <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5" onClick={handleBack}>
                         <ArrowLeft />
                     </Button>
-                    <div className="flex gap-2">
-                        <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000]" onClick={handleShuffle}>
-                            <Shuffle />
-                        </Button>
-                        <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000]" onClick={handlePublish}>
-                            Publish
-                        </Button>
-                    </div>
+                    <Button variant="fit" size="xs" className="shadow-[4px_4px_0_#000000] transition-all hover:-translate-y-0.5" onClick={handlePublish}>
+                        Publish
+                    </Button>
                 </div>
 
                 <div className="flex flex-col w-full border-2 border-card-foreground rounded-md gap-1 px-3 py-2">
@@ -207,29 +162,51 @@ export default function ExamView({ exam, questions, auth }: Props) {
                                     value={editedTitle}
                                     onChange={(e) => setEditedTitle(e.target.value)}
                                     onKeyDown={handleTitleKeyDown}
-                                    className="flex-1 text-2xl font-medium text-foreground outline-none border-b-2 border-blue-500 focus:outline-none bg-transparent"
+                                    className="flex-1 text-2xl font-medium text-foreground outline-none border-b-2 border-blue-500 focus:outline-none focus:ring-0 bg-transparent"
                                     autoFocus
                                     disabled={isSaving}
                                 />
-                                <button onClick={handleSaveTitle} disabled={isSaving} className="p-1.5 hover:bg-green-100 rounded text-green-600">
+                                <button
+                                    onClick={handleSaveTitle}
+                                    disabled={isSaving}
+                                    className="p-1.5 hover:bg-green-100 rounded text-green-600 disabled:opacity-50"
+                                    title="Save (Enter)"
+                                >
                                     <Check size={22} />
                                 </button>
-                                <button onClick={handleCancelEdit} disabled={isSaving} className="p-1.5 hover:bg-red-100 rounded text-red-600">
+                                <button
+                                    onClick={handleCancelEdit}
+                                    disabled={isSaving}
+                                    className="p-1.5 hover:bg-red-100 rounded text-red-600 disabled:opacity-50"
+                                    title="Cancel (Esc)"
+                                >
                                     <X size={22} />
                                 </button>
                             </>
                         ) : (
                             <>
-                                <h1 className="flex-1 text-2xl font-medium text-foreground">{exam.title}</h1>
-                                <button onClick={() => setIsEditingTitle(true)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500">
+                                <h1 className="flex-1 text-2xl font-medium text-foreground">
+                                    {exam.title}
+                                </h1>
+                                <button
+                                    onClick={() => setIsEditingTitle(true)}
+                                    className="p-1.5 hover:bg-gray-100 rounded text-gray-500 transition-colors"
+                                    title="Click to edit title"
+                                >
                                     <Pencil size={20} />
                                 </button>
                             </>
                         )}
                     </div>
-                    <div className="flex flex-row w-fit space-x-1">
-                        <p className="text-md text-foreground">Topic:</p>
-                        <p className="text-md font-semibold text-foreground">{exam.extracted_topic}</p>
+                    <div className="flex flex-col">
+                        <div className="flex flex-row w-fit space-x-1">
+                            <p className="text-md text-foreground">Difficulty:</p>
+                            <p className="text-md font-semibold text-foreground">{exam.difficulty}</p>
+                        </div>
+                        <div className="flex flex-row w-fit space-x-1">
+                            <p className="text-md text-foreground">Topic:</p>
+                            <p className="text-md font-semibold text-foreground">{exam.extracted_topic}</p>
+                        </div>
                     </div>
                 </div>
 
@@ -237,33 +214,35 @@ export default function ExamView({ exam, questions, auth }: Props) {
                     <h2 className="font-medium text-md">Test Types</h2>
                     <div className="flex flex-col md:flex-row sm:gap-8 w-full gap-4">
                         <div className="flex flex-col w-full md:w-[24%] gap-2">
-                            {options.map(option => (
-                                <RadioButton
-                                    key={option.id}
-                                    option={option}
-                                    isSelected={selected === option.id}
-                                    onSelect={setSelected}
-                                />
-                            ))}
+                            {options.map((option) => {
+                                return (
+                                    <RadioButton
+                                        key={option.id}
+                                        option={option}
+                                        isSelected={selected === option.id}
+                                        onSelect={setSelected}
+                                    />
+                                );
+                            })}
                         </div>
 
                         <div className="flex flex-col w-full md:w-[50%]">
-                            {selected === "multiple" && examQuestions.multiple.length > 0 ? (
+                            {selected === "multiple" && questions.multiple.length > 0 ? (
                                 <section id="multiple" className="flex w-full flex-col gap-3">
-                                    {examQuestions.multiple.map((q, idx) => (
-                                        <MultipleChoice key={q.id} index={idx} data={q} />
+                                    {questions.multiple.map((questionProps, index) => (
+                                        <MultipleChoice key={questionProps.id} index={index} data={questionProps} />
                                     ))}
                                 </section>
-                            ) : selected === "trueOrFalse" && examQuestions.trueOrFalse.length > 0 ? (
+                            ) : selected === "trueOrFalse" && questions.trueOrFalse.length > 0 ? (
                                 <section id="trueOrFalse" className="flex w-full flex-col gap-3">
-                                    {examQuestions.trueOrFalse.map((q, idx) => (
-                                        <TrueOrFalse key={q.id} index={idx} data={q} />
+                                    {questions.trueOrFalse.map((questionProps, index) => (
+                                        <TrueOrFalse key={questionProps.id} index={index} data={questionProps} />
                                     ))}
                                 </section>
-                            ) : selected === "identification" && examQuestions.identification.length > 0 ? (
+                            ) : selected === "identification" && questions.identification.length > 0 ? (
                                 <section id="identification" className="flex w-full flex-col gap-3">
-                                    {examQuestions.identification.map((q, idx) => (
-                                        <Identification key={q.id} index={idx} data={q} />
+                                    {questions.identification.map((questionProps, index) => (
+                                        <Identification key={questionProps.id} index={index} data={questionProps} />
                                     ))}
                                 </section>
                             ) : (

@@ -167,7 +167,6 @@ export default function GenerateExamForm() {
                                 type="button"
                                 onClick={handleClose}
                                 className="hover:border-card-foreground bg-card border-2 border-transparent"
-                                disabled={isSubmitting}
                             >
                                 <X />
                             </Button>
