@@ -227,7 +227,7 @@ export default function ExamView({ exam, questions, auth }: Props) {
                                     value={editedTitle}
                                     onChange={(e) => setEditedTitle(e.target.value)}
                                     onKeyDown={handleTitleKeyDown}
-                                    className="flex-1 text-2xl font-medium text-foreground outline-none border-b-2 border-blue-500 focus:outline-none bg-transparent"
+                                    className="flex-1 text-2xl font-medium text-foreground outline-none border-b-2 border-card-foreground focus:outline-none bg-transparent"
                                     autoFocus
                                     disabled={isSaving}
                                 />
