@@ -121,7 +121,7 @@ export default function GenerateExamForm() {
     return (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card w-full sm:max-w-lg max-w-md max-h-[90vh] border-2 border-card-foreground rounded-3xl z-10 flex flex-col overflow-hidden">
             {/* Header */}
-            <FieldHeader className="flex-shrink-0 px-4 py-3 border-b-2 flex items-center justify-between">
+            <FieldHeader className="shrink-0 px-4 py-3 border-b-2 flex items-center justify-between">
                 <FieldLegend>Generate Exam</FieldLegend>
                 <Button
                     variant="ghost"
@@ -137,30 +137,20 @@ export default function GenerateExamForm() {
 
             {/* Scrollable Content */}
             <FieldGroup className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-                {error && (
-                    <div className="bg-red-100 border-2 border-red-500 text-red-700 px-4 py-3 rounded-lg">
-                        {error}
-                    </div>
-                )}
-
-                <Field>
-                    <FieldLabel htmlFor="topic">Topic (Optional)</FieldLabel>
+                <Field className="gap-2">
+                    <FieldLabel htmlFor="topic">Exam Topic</FieldLabel>
                     <Input
                         id="topic"
                         type="text"
-                        placeholder="Enter a topic (e.g., Photosynthesis, World War II)"
+                        placeholder="Enter a topic (e.g., Photosynthesis)"
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
                         disabled={isSubmitting}
-                        className="w-full"
+                        className="w-full shadow-[4px_4px_0_#000000] rounded-lg px-4 py-2"
                     />
-                    <FieldDescription>Provide a topic to generate questions about, or upload a PDF below</FieldDescription>
-                </Field>
-
-                <Field>
-                    <FieldLabel htmlFor="file-upload">Exam Source (Optional)</FieldLabel>
+                    <FieldDescription>or</FieldDescription>
                     <FileUpload onFileSelect={setFile} accept=".pdf" maxSize={10} value={file} disabled={isSubmitting} />
-                    <FieldDescription>Upload a PDF to generate questions from its content</FieldDescription>
+                    <FieldDescription className="text-left m-1">Provide a topic or upload a PDF as the source for exam question generation.</FieldDescription>
                 </Field>
 
                 <Field>
@@ -182,7 +172,7 @@ export default function GenerateExamForm() {
                     <FieldLabel>Selected Question Types</FieldLabel>
                     <div className="flex flex-col w-full text-left px-2 gap-4">
                         {selected.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-4">No question types selected yet</p>
+                            <p className="text-sm text-foreground text-center py-4">No question types selected yet</p>
                         ) : (
                             selected.map((item) => (
                                 <div key={item.type} className="flex flex-col gap-2 border-b-2 pb-4">
@@ -223,7 +213,7 @@ export default function GenerateExamForm() {
                                                 onChange={(val) => handleDifficultyChange(item.type, 'hard', val)}
                                             />
                                         </div>
-                                        <FieldDescription className="ml-2 text-xs">
+                                        <FieldDescription className="text-left ml-1">
                                             Specify how many questions at each difficulty level
                                         </FieldDescription>
                                     </div>
@@ -235,14 +225,14 @@ export default function GenerateExamForm() {
             </FieldGroup>
 
             {/* Footer */}
-            <FieldFooter className="flex-shrink-0 border-t-2 p-4">
+            <FieldFooter className="shrink-0 border-t-2 p-4">
                 <Button
                     variant="fit"
                     size="xs"
                     type="button"
                     onClick={handleSubmit}
                     disabled={isSubmitting || (!file && !topic.trim()) || selected.length === 0}
-                    className="transition-all hover:-translate-y-0.5 shadow-[4px_4px_0_#000000] disabled:opacity-50 disabled:cursor-not-allowed w-full"
+                    className="transition-all hover:-translate-y-0.5 shadow-[4px_4px_0_#000000] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isSubmitting ? 'Generating Exam...' : 'Generate'}
                 </Button>
