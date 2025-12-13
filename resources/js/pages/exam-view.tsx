@@ -11,6 +11,9 @@ import { generateExamPdf } from "@/utils/generateExamPdf";
 import Swal from "sweetalert2";
 import GenerateExamForm from "@/pages/form/generate-exam-form";
 import ShuffleQuestions from "@/pages/form/shuffle-questions";
+import {createPortal} from "react-dom";
+import DeleteQuestion from "@/pages/form/delete-question";
+import * as React from "react";
 
 type ExamData = {
     id: number;
@@ -106,47 +109,8 @@ export default function ExamView({ exam, questions, auth }: Props) {
         }
     };
 
-    // const handleShuffle = async () => {
-    //     const result = await Swal.fire({
-    //         title: "Shuffle Questions?",
-    //         text: "All questions will be randomly rearranged. This action is permanent but you can shuffle again.",
-    //         icon: "question",
-    //         showCancelButton: true,
-    //         confirmButtonColor: "#2563eb",
-    //         cancelButtonColor: "#6b7280",
-    //         confirmButtonText: "Shuffle",
-    //     });
-    //
-    //     if (!result.isConfirmed) return;
-    //
-    //     // Shuffle each type
-    //     const shuffledQuestions: QuestionData = {
-    //         multiple: shuffleArray(examQuestions.multiple),
-    //         trueOrFalse: shuffleArray(examQuestions.trueOrFalse),
-    //         identification: shuffleArray(examQuestions.identification),
-    //     };
-    //
-    //     setExamQuestions(shuffledQuestions);
-    //
-    //     try {
-    //         const payload = [
-    //             ...shuffledQuestions.multiple.map((q, i) => ({ id: q.id, order: i + 1 })),
-    //             ...shuffledQuestions.trueOrFalse.map((q, i) => ({ id: q.id, order: i + 1 })),
-    //             ...shuffledQuestions.identification.map((q, i) => ({ id: q.id, order: i + 1 })),
-    //         ];
-    //
-    //         await router.post(
-    //             `/exam-generator/shuffle-questions/${exam.id}`,
-    //             { questions: payload },
-    //             { preserveScroll: true }
-    //         );
-    //
-    //         Swal.fire("Shuffled!", "Questions have been shuffled successfully.", "success");
-    //     } catch (error) {
-    //         console.error(error);
-    //         Swal.fire("Error", "Failed to save new question order.", "error");
-    //     }
-    // };
+
+
 
     const handleSaveTitle = async () => {
         if (editedTitle.trim() === "") return alert("Title cannot be empty");
@@ -193,6 +157,7 @@ export default function ExamView({ exam, questions, auth }: Props) {
         setShowForm(true);
     };
 
+
     return (
         <AppLayout auth={auth}>
             <div className="flex flex-1 min-h-[620px] mt-20 flex-col items-center justify-start gap-3 rounded-xl px-4 pb-10">
@@ -210,13 +175,17 @@ export default function ExamView({ exam, questions, auth }: Props) {
                         </Button>
                     </div>
                 </div>
-                {showForm && <ShuffleQuestions />}
-                {showForm && (
-                    <div
-                        className="fixed inset-0 bg-black/60 z-2"
-                        onClick={() => setShowForm(false)}
-                    />
-                )}
+                {showForm &&
+                    createPortal(
+                        <>
+                            <div
+                                className="fixed inset-0 bg-black/60 z-50"
+                                onClick={() => setShowForm(false)}
+                            />
+                            <ShuffleQuestions exam={exam} questions={questions} onClose={() => setShowForm(false)}/>
+                        </>,
+                        document.body
+                    )}
                 {/* Exam Title */}
                 <div className="flex flex-col w-full border-2 border-card-foreground rounded-md gap-1 px-3 py-2">
                     <div className="flex flex-row w-full gap-3 items-center">
@@ -227,7 +196,7 @@ export default function ExamView({ exam, questions, auth }: Props) {
                                     value={editedTitle}
                                     onChange={(e) => setEditedTitle(e.target.value)}
                                     onKeyDown={handleTitleKeyDown}
-                                    className="flex-1 text-2xl font-medium text-foreground outline-none border-b-2 border-blue-500 focus:outline-none bg-transparent"
+                                    className="flex-1 text-2xl font-medium text-foreground outline-none border-b-2 border-card-foreground focus:outline-none bg-transparent"
                                     autoFocus
                                     disabled={isSaving}
                                 />
