@@ -44,7 +44,7 @@ export function AppHeader({ auth, breadcrumbs = [] }: AppHeaderProps) {
     const page = usePage<SharedData>();
 
     return (
-        <div className="fixed w-full border-b-2 border-card-foreground bg-background z-20">
+        <div className="fixed w-full border-b-2 border-card-foreground bg-background z-2">
             <div className="mx-auto flex h-16 items-center px-4">
                 {/* Mobile Menu */}
                 <div className="lg:hidden">
