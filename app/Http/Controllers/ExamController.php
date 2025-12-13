@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ExamController extends Controller
@@ -263,9 +264,114 @@ class ExamController extends Controller
         return Inertia::render('loader-screen', []);
     }
 
+    public function duplicateExam($id)
+    {
+        $originalExam = Exam::with('questions')->findOrFail($id);
+
+        try {
+            DB::beginTransaction();
+
+            // Create new exam
+            $examAttributes = $originalExam->getAttributes();
+            unset($examAttributes['id']);
+            unset($examAttributes['created_at']);
+            unset($examAttributes['updated_at']);
+            $examAttributes['share_code'] = null;
+            $examAttributes['title'] = $originalExam->title . ' (Copy)';
+            $examAttributes['user_id'] = Auth::id();
+
+            // Ensure settings are properly copied
+            $originalSettings = $originalExam->settings ?? [];
+            $originalTopic = $originalSettings['extracted_topic'] ?? $originalExam->title;
+            $newSettings = $originalSettings;
+            $newSettings['extracted_topic'] = $originalTopic;
+            $examAttributes['settings'] = $newSettings;
+
+            $newExam = Exam::create($examAttributes);
+
+            // Duplicate questions with proper options handling
+            foreach ($originalExam->questions as $question) {
+                $questionAttributes = $question->getAttributes();
+
+                unset($questionAttributes['id']);
+                unset($questionAttributes['created_at']);
+                unset($questionAttributes['updated_at']);
+                $questionAttributes['exam_id'] = $newExam->id;
+
+                // --- CRITICAL FIX: Properly handle options field ---
+                if (isset($questionAttributes['options'])) {
+                    $options = $questionAttributes['options'];
+
+                    // If it's a string, decode it
+                    if (is_string($options)) {
+                        $options = json_decode($options, true);
+                    }
+
+                    // Ensure it's an array
+                    if (!is_array($options)) {
+                        $options = [];
+                    }
+
+                    // Filter out invalid values
+                    $options = array_values(array_filter($options, function($val) {
+                        return $val !== null && $val !== '';
+                    }));
+
+                    // Re-encode as JSON string for storage
+                    $questionAttributes['options'] = json_encode($options);
+                } else {
+                    // If options doesn't exist, set as empty array JSON
+                    $questionAttributes['options'] = json_encode([]);
+                }
+
+                Question::create($questionAttributes);
+            }
+
+            DB::commit();
+
+            return redirect()->route('exam.view', ['id' => $newExam->id])
+                ->with('success', "Exam duplicated successfully! New exam: {$newExam->title}");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Exam duplication failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withErrors(['general' => 'Failed to duplicate exam: ' . $e->getMessage()]);
+        }
+    }
+
+    // ADDED: New method to delete an exam
+    public function deleteExam($id)
+    {
+        $exam = Exam::findOrFail($id);
+
+        try {
+            DB::beginTransaction();
+
+            // Delete questions first
+            $exam->questions()->delete();
+
+            // Then delete the exam itself
+            $exam->delete();
+
+            DB::commit();
+
+            return back()->with('success', "Exam '{$exam->title}' deleted successfully.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Exam deletion failed', ['error' => $e->getMessage()]);
+            return back()->withErrors(['general' => 'Failed to delete exam.']);
+        }
+    }
+
     public function view($id)
     {
-        $exam = Exam::with('questions')->findOrFail($id);
+        // Explicitly order questions by the 'order' column
+        $exam = Exam::with(['questions' => function ($query) {
+            $query->orderBy('order', 'asc');
+        }])->findOrFail($id);
 
         // Transform questions for components
         $transformedQuestions = [
@@ -275,19 +381,36 @@ class ExamController extends Controller
         ];
 
         foreach ($exam->questions as $question) {
-            $options = is_string($question->options)
-                ? json_decode($question->options, true)
-                : $question->options;
 
+            // --- ROBUST OPTIONS HANDLING ---
+            $options = $question->options;
+
+            // Case 1: It's a JSON string - decode it
+            if (is_string($options)) {
+                $decoded = json_decode($options, true);
+                $options = is_array($decoded) ? $decoded : [];
+            }
+            // Case 2: It's null or not an array - default to empty array
+            elseif (!is_array($options)) {
+                $options = [];
+            }
+            // Case 3: It's already an array - use as-is
+
+            // Additional safety: filter out null/invalid values
+            $options = array_values(array_filter($options, function($val) {
+                return $val !== null && $val !== '';
+            }));
+
+            // --- BUILD QUESTION DATA ---
             $questionData = [
                 'id' => $question->id,
                 'question' => $question->question_text,
                 'answer' => $question->correct_answer,
-                'difficulty' => $question->difficulty
+                'difficulty' => $question->difficulty ?? 'medium'
             ];
 
             if ($question->question_type === 'multiple-choice') {
-                $questionData['choices'] = $options ?? [];
+                $questionData['choices'] = $options; // Now guaranteed to be an array
                 $transformedQuestions['multiple'][] = $questionData;
             } elseif ($question->question_type === 'true-false') {
                 $transformedQuestions['trueOrFalse'][] = $questionData;
@@ -311,6 +434,32 @@ class ExamController extends Controller
         ]);
     }
 
+    public function shuffleQuestions(Request $request, $id)
+    {
+        $request->validate([
+            'questions' => 'required|array',
+            'questions.*.id' => 'required|integer|exists:questions,id',
+            'questions.*.order' => 'required|integer|min:1',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($request->input('questions') as $item) {
+                Question::where('id', $item['id'])->update(['order' => $item['order']]);
+            }
+
+            DB::commit();
+
+            return back()->with('success', 'Questions shuffled successfully');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Shuffle failed', ['error' => $e->getMessage()]);
+            return back()->withErrors(['general' => 'Failed to save order']);
+        }
+    }
+
     public function updateTitle(Request $request, $id)
     {
         $request->validate([
@@ -332,22 +481,6 @@ class ExamController extends Controller
             'message' => 'Export functionality coming soon',
             'exam' => $exam
         ]);
-    }
-
-    public function shuffleQuestions(Request $request, $id)
-    {
-        $request->validate([
-            '*.id' => 'required|integer|exists:questions,id',
-            '*.order' => 'required|integer|min:1',
-        ]);
-
-        foreach ($request->all() as $item) {
-            $question = Question::find($item['id']);
-            $question->order = $item['order'];
-            $question->save();
-        }
-
-        return response()->json(['message' => 'Questions shuffled successfully']);
     }
 
 

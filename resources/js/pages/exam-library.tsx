@@ -27,12 +27,41 @@ interface ExamLibraryProps {
 
 export default function ExamLibrary({ exams = [], auth }: ExamLibraryProps) {
     const handleExamClick = (examId: number) => {
-        // Use the correct route from your web.php: /exam-generator/view/{id}
         router.visit(`/exam-generator/view/${examId}`);
     };
 
     const handleBack = () => {
         router.visit('/');
+    };
+
+    // --- ADDED: Duplicate Handler ---
+    const handleDuplicate = (examId: number) => {
+        if (confirm("Are you sure you want to duplicate this exam?")) {
+            router.post(`/exam-library/${examId}/duplicate`, {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    // Inertia automatically reloads the library list on success
+                },
+                onError: (errors) => {
+                    console.error("Duplication failed:", errors);
+                }
+            });
+        }
+    };
+
+    // --- ADDED: Delete Handler ---
+    const handleDelete = (examId: number) => {
+        if (confirm("Are you sure you want to permanently delete this exam?")) {
+            router.delete(`/exam-library/${examId}`, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    // Inertia automatically reloads the library list on success
+                },
+                onError: (errors) => {
+                    console.error("Deletion failed:", errors);
+                }
+            });
+        }
     };
 
     return (
@@ -63,7 +92,15 @@ export default function ExamLibrary({ exams = [], auth }: ExamLibraryProps) {
                         {exams.map((exam, index) => (
                             <div
                                 key={exam.id}
-                                onClick={() => handleExamClick(exam.id)}
+                                // Prevent card click event when interacting with buttons/dropdown
+                                onClick={(e) => {
+                                    // Check if the click originated from the dropdown/buttons
+                                    if (e.target instanceof HTMLElement && e.target.closest('[data-action="card-action"]')) {
+                                        e.stopPropagation();
+                                        return;
+                                    }
+                                    handleExamClick(exam.id);
+                                }}
                             >
                                 <ExamCard
                                     data={{
@@ -72,6 +109,9 @@ export default function ExamLibrary({ exams = [], auth }: ExamLibraryProps) {
                                         topic: exam.extracted_topic || exam.topic
                                     }}
                                     index={index}
+                                    // Pass handlers with examId
+                                    onDuplicate={() => handleDuplicate(exam.id)}
+                                    onDelete={() => handleDelete(exam.id)}
                                 />
                             </div>
                         ))}

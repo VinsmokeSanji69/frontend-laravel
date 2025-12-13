@@ -50,6 +50,8 @@ export function ExamCard({
                 {/* 3-dot button (appears on hover) */}
                 <button
                     type="button"
+                    // Add data attribute to allow event stopping in parent
+                    data-action="card-action"
                     onClick={(e) => {
                         e.stopPropagation()
                         setOpen((v) => !v)
@@ -78,6 +80,8 @@ export function ExamCard({
                     onClick={(e) => e.stopPropagation()}
                 >
                     <button
+                        // Add data attribute
+                        data-action="card-action"
                         className="flex w-full items-center gap-2 px-3 py-2 text-md font-medium hover:bg-muted rounded-t-md"
                         onClick={() => {
                             setOpen(false)
@@ -89,6 +93,8 @@ export function ExamCard({
                     </button>
 
                     <button
+                        // Add data attribute
+                        data-action="card-action"
                         className="flex w-full items-center gap-2 px-3 py-2 text-md font-medium hover:bg-red-100 text-red-600 rounded-b-md"
                         onClick={() => {
                             setOpen(false)
