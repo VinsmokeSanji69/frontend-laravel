@@ -2,13 +2,12 @@ import { Button } from "@/components/ui/button"
 import {
     FieldGroup,
     FieldHeader,
-    FieldFooter, FieldLegend, FieldTitle, FieldLabel, FieldDescription,
+    FieldFooter, FieldLegend, FieldLabel, FieldDescription,
 } from "@/components/ui/field"
 import { X } from "lucide-react";
-import {router} from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import * as React from "react";
-import {useState} from "react";
-import {User} from "@/types";
+import { useState } from "react";
 
 type ExamData = {
     id: number;
@@ -42,6 +41,8 @@ interface ShuffleQuestionsProps extends React.ComponentProps<"div"> {
     exam: ExamData;
     questions: QuestionData;
     onClose?: () => void;
+    // New prop to communicate back to parent
+    onShuffleComplete?: (shuffledData: QuestionData) => void;
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -53,26 +54,34 @@ function shuffleArray<T>(array: T[]): T[] {
     return arr;
 }
 
-
 export default function ShuffleQuestions({
                                              exam,
                                              questions,
                                              onClose,
+                                             onShuffleComplete,
                                              ...props
                                          }: ShuffleQuestionsProps) {
 
     const [examQuestions, setExamQuestions] = useState<QuestionData>({ ...questions });
 
     const handleShuffle = async () => {
-        // Shuffle each type
+        // 1. Perform Shuffle Locally
         const shuffledQuestions: QuestionData = {
             multiple: shuffleArray(examQuestions.multiple),
             trueOrFalse: shuffleArray(examQuestions.trueOrFalse),
             identification: shuffleArray(examQuestions.identification),
         };
 
+        // 2. Update Local State (Good practice)
         setExamQuestions(shuffledQuestions);
 
+        // 3. IMMEDIATE UI UPDATE (Optimistic)
+        // Pass the shuffled data back to parent immediately
+        if (onShuffleComplete) {
+            onShuffleComplete(shuffledQuestions);
+        }
+
+        // 4. Save to Database
         try {
             const payload = [
                 ...shuffledQuestions.multiple.map((q, i) => ({ id: q.id, order: i + 1 })),
@@ -83,16 +92,18 @@ export default function ShuffleQuestions({
             await router.post(
                 `/exam-generator/shuffle-questions/${exam.id}`,
                 { questions: payload },
-                { preserveScroll: true,
+                {
+                    preserveScroll: true,
                     onSuccess: () => {
+                        console.log("Questions shuffled successfully!");
+                        // Close the modal
                         onClose?.();
-                    },}
-
+                    },
+                }
             );
-
-            console.log("Questions shuffled successfully!");
         } catch (error) {
             console.error("Failed to save new question order:", error);
+            // Optionally: You might want to revert the UI here if save fails
         }
     };
 

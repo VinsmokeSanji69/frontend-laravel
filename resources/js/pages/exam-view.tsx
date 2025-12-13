@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppLayout from "@/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, Check, X, Shuffle } from "lucide-react";
@@ -8,13 +8,11 @@ import { TrueOrFalse } from "@/pages/question-layout/true-or-false";
 import { Identification } from "@/pages/question-layout/identification";
 import { router } from "@inertiajs/react";
 import { generateExamPdf } from "@/utils/generateExamPdf";
-import Swal from "sweetalert2";
-import GenerateExamForm from "@/pages/form/generate-exam-form";
 import ShuffleQuestions from "@/pages/form/shuffle-questions";
-import {createPortal} from "react-dom";
-import DeleteQuestion from "@/pages/form/delete-question";
+import { createPortal } from "react-dom";
 import * as React from "react";
 
+// --- TYPES ---
 type ExamData = {
     id: number;
     title: string;
@@ -71,16 +69,6 @@ function generateOptions(data: QuestionData) {
         }));
 }
 
-// Helper to shuffle array
-function shuffleArray<T>(array: T[]): T[] {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-}
-
 export default function ExamView({ exam, questions, auth }: Props) {
     const options = generateOptions(questions);
     const [showForm, setShowForm] = useState(false);
@@ -93,10 +81,23 @@ export default function ExamView({ exam, questions, auth }: Props) {
     };
 
     const [selected, setSelected] = useState<string>(getInitialSelected());
+
+    // State to hold the current view of questions
     const [examQuestions, setExamQuestions] = useState<QuestionData>({ ...questions });
+
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [editedTitle, setEditedTitle] = useState(exam.title);
     const [isSaving, setIsSaving] = useState(false);
+
+    // --- CRITICAL FIX 1: Sync state when Inertia props change (server reload) ---
+    useEffect(() => {
+        setExamQuestions(questions);
+    }, [questions]);
+
+    // --- CRITICAL FIX 2: Callback to update UI instantly from child ---
+    const handleOptimisticShuffle = (shuffledData: QuestionData) => {
+        setExamQuestions(shuffledData);
+    };
 
     const handleBack = () => router.visit("/exam-library");
 
@@ -108,9 +109,6 @@ export default function ExamView({ exam, questions, auth }: Props) {
             alert("Failed to generate PDF. Please try again.");
         }
     };
-
-
-
 
     const handleSaveTitle = async () => {
         if (editedTitle.trim() === "") return alert("Title cannot be empty");
@@ -145,7 +143,6 @@ export default function ExamView({ exam, questions, auth }: Props) {
         else if (e.key === "Escape") handleCancelEdit();
     };
 
-    // --- Delete handler for all question types ---
     const handleDeleteQuestion = (type: keyof QuestionData, id: number) => {
         setExamQuestions(prev => ({
             ...prev,
@@ -156,7 +153,6 @@ export default function ExamView({ exam, questions, auth }: Props) {
     const handleShuffleClick = () => {
         setShowForm(true);
     };
-
 
     return (
         <AppLayout auth={auth}>
@@ -175,6 +171,7 @@ export default function ExamView({ exam, questions, auth }: Props) {
                         </Button>
                     </div>
                 </div>
+
                 {showForm &&
                     createPortal(
                         <>
@@ -182,10 +179,17 @@ export default function ExamView({ exam, questions, auth }: Props) {
                                 className="fixed inset-0 bg-black/60 z-50"
                                 onClick={() => setShowForm(false)}
                             />
-                            <ShuffleQuestions exam={exam} questions={questions} onClose={() => setShowForm(false)}/>
+                            <ShuffleQuestions
+                                exam={exam}
+                                questions={questions}
+                                onClose={() => setShowForm(false)}
+                                // Pass the optimistic update handler here
+                                onShuffleComplete={handleOptimisticShuffle}
+                            />
                         </>,
                         document.body
                     )}
+
                 {/* Exam Title */}
                 <div className="flex flex-col w-full border-2 border-card-foreground rounded-md gap-1 px-3 py-2">
                     <div className="flex flex-row w-full gap-3 items-center">

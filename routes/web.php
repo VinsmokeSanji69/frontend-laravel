@@ -66,13 +66,22 @@ Route::prefix('exam-generator')->middleware('auth')->group(function () {
         ->name('exam.shuffleQuestions');
 });
 
-// routes/web.php
 Route::get('/exam-library', [ExamController::class, 'library'])->name('exam.library');
 
-// Update exam title - PROTECTED
-Route::patch('/exam/{id}/update-title', [ExamController::class, 'updateTitle'])
-    ->middleware('auth')
-    ->name('exam.updateTitle');
+// Exam Management Actions - PROTECTED
+Route::middleware('auth')->group(function () {
+    // Update exam title
+    Route::patch('/exam/{id}/update-title', [ExamController::class, 'updateTitle'])
+        ->name('exam.updateTitle');
+
+    // ADDED: Duplicate Exam (POST)
+    Route::post('/exam-library/{id}/duplicate', [ExamController::class, 'duplicateExam'])
+        ->name('exam.duplicate');
+
+    // ADDED: Delete Exam (DELETE)
+    Route::delete('/exam-library/{id}', [ExamController::class, 'deleteExam'])
+        ->name('exam.delete');
+});
 
 // Question Management Routes - PROTECTED
 Route::prefix('questions')->middleware('auth')->group(function () {
