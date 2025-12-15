@@ -264,11 +264,23 @@ class ExamController extends Controller
         return Inertia::render('loader-screen', []);
     }
 
+    // FIXED: duplicateExam() - Add validation
     public function duplicateExam($id)
     {
-        $originalExam = Exam::with('questions')->findOrFail($id);
+        // Validate ID
+        if (!is_numeric($id) || $id <= 0) {
+            Log::error('Invalid exam ID for duplication', ['id' => $id]);
+            return back()->withErrors(['general' => 'Invalid exam ID.']);
+        }
 
         try {
+            $originalExam = Exam::with('questions')->findOrFail($id);
+
+            // Check authorization
+            if ($originalExam->user_id !== Auth::id()) {
+                return back()->withErrors(['general' => 'Unauthorized action.']);
+            }
+
             DB::beginTransaction();
 
             // Create new exam
@@ -298,29 +310,24 @@ class ExamController extends Controller
                 unset($questionAttributes['updated_at']);
                 $questionAttributes['exam_id'] = $newExam->id;
 
-                // --- CRITICAL FIX: Properly handle options field ---
+                // Handle options field
                 if (isset($questionAttributes['options'])) {
                     $options = $questionAttributes['options'];
 
-                    // If it's a string, decode it
                     if (is_string($options)) {
                         $options = json_decode($options, true);
                     }
 
-                    // Ensure it's an array
                     if (!is_array($options)) {
                         $options = [];
                     }
 
-                    // Filter out invalid values
                     $options = array_values(array_filter($options, function($val) {
                         return $val !== null && $val !== '';
                     }));
 
-                    // Re-encode as JSON string for storage
                     $questionAttributes['options'] = json_encode($options);
                 } else {
-                    // If options doesn't exist, set as empty array JSON
                     $questionAttributes['options'] = json_encode([]);
                 }
 
@@ -329,12 +336,18 @@ class ExamController extends Controller
 
             DB::commit();
 
+            Log::info('Exam duplicated successfully', [
+                'original_id' => $id,
+                'new_id' => $newExam->id
+            ]);
+
             return redirect()->route('exam.view', ['id' => $newExam->id])
                 ->with('success', "Exam duplicated successfully! New exam: {$newExam->title}");
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Exam duplication failed', [
+                'id' => $id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -342,12 +355,25 @@ class ExamController extends Controller
         }
     }
 
-    // ADDED: New method to delete an exam
+    // FIXED: deleteExam() - Add validation
     public function deleteExam($id)
     {
-        $exam = Exam::findOrFail($id);
+        // Validate ID
+        if (!is_numeric($id) || $id <= 0) {
+            Log::error('Invalid exam ID for deletion', ['id' => $id]);
+            return back()->withErrors(['general' => 'Invalid exam ID.']);
+        }
 
         try {
+            $exam = Exam::findOrFail($id);
+
+            // Check authorization
+            if ($exam->user_id !== Auth::id()) {
+                return back()->withErrors(['general' => 'Unauthorized action.']);
+            }
+
+            $examTitle = $exam->title;
+
             DB::beginTransaction();
 
             // Delete questions first
@@ -358,10 +384,16 @@ class ExamController extends Controller
 
             DB::commit();
 
-            return back()->with('success', "Exam '{$exam->title}' deleted successfully.");
+            Log::info('Exam deleted successfully', ['id' => $id, 'title' => $examTitle]);
+
+            return back()->with('success', "Exam '{$examTitle}' deleted successfully.");
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Exam deletion failed', ['error' => $e->getMessage()]);
+            Log::error('Exam deletion failed', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
             return back()->withErrors(['general' => 'Failed to delete exam.']);
         }
     }
@@ -491,15 +523,26 @@ class ExamController extends Controller
             ->latest()
             ->get()
             ->map(function ($exam) {
+                $settings = $exam->settings ?? [];
+
                 return [
-                    'id' => $exam->id,
+                    'id' => $exam->id, // CRITICAL: This must be here!
                     'title' => $exam->title,
-                    'topic' => $exam->settings['extracted_topic'] ?? 'Unknown',
-                    'question_count' => $exam->questions->count(),
+                    'topic' => $settings['extracted_topic'] ?? 'Unknown',
+                    'extracted_topic' => $settings['extracted_topic'] ?? 'Unknown', // For backward compatibility
+                    'questionCount' => $exam->questions->count(), // camelCase to match TypeScript
+                    'question_count' => $exam->questions->count(), // snake_case for backward compatibility
                     'created_at' => $exam->created_at->toISOString(),
-                    'generation_method' => $exam->settings['generation_method'] ?? null,
+                    'generation_method' => $settings['generation_method'] ?? null,
                 ];
             });
+
+        // DEBUG: Log the data to verify
+        Log::info('Exam library data', [
+            'count' => $exams->count(),
+            'first_exam' => $exams->first(),
+            'user_id' => auth()->id()
+        ]);
 
         return inertia('exam-library', [
             'exams' => $exams
